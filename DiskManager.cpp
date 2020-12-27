@@ -116,7 +116,7 @@ Tuple* DiskManager::readTupleAt( disk_pointer position, Meta* meta )
 
         // Move the pointer to the appropiate position and read
         fseek( pointer, 0L, meta->getTupleByteSize() * position );
-        fread( readPayload, tuple->getSerialFormSize(), 1, pointer );
+        fread( readPayload, meta->getTupleByteSize(), 1, pointer );
 
         // Build new tuple 
         tuple = new Tuple( readPayload, meta, position );
