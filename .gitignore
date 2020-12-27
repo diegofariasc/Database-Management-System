@@ -1,0 +1,16 @@
+# Ignore VS code files
+.vscode
+
+# Ignore in-progress documentation
+*.docx
+
+# Ignore output files
+*.out
+
+# Ignore database-produced files
+*.data
+*.meta
+*.bpindex
+
+# Temporarily ignore main, where tests are being carried
+Main.cpp
