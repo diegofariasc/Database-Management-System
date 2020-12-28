@@ -1,5 +1,6 @@
-# Ignore VS code files
+# Ignore VS and mac files
 .vscode
+.DS_Store
 
 # Ignore in-progress documentation
 *.docx
