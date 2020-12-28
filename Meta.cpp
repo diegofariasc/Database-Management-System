@@ -21,7 +21,6 @@ Meta::Meta( unsigned short      tableNameLength,
     this->tupleFieldSizes = tupleFieldSizes;
     this->primaryKeyFieldCount = primaryKeyFieldCount;
     this->primaryKeyFields = primaryKeyFields;
-    this->fieldNames = fieldNames;
     this->fieldNameSizes = fieldNameSizes;
     this->fieldNames = fieldNames;
 
@@ -69,12 +68,22 @@ char*           Meta::getFieldName( unsigned short position )       { return fie
 // For information about this method refer to Serializable.h
 unsigned int Meta::getSerialFormSize()
 {
-    return  
+    unsigned int length;
+    length =sizeof( tableNameLength ) + tableNameLength +
             sizeof( tupleByteSize ) + sizeof( tupleFieldCount ) +
             sizeof( unsigned short ) * tupleFieldCount +
             sizeof( unsigned int ) * tupleFieldCount * 2 + 
             sizeof( primaryKeyFieldCount ) + 
-            sizeof( unsigned short ) * primaryKeyFieldCount ;
+            sizeof( unsigned short ) * primaryKeyFieldCount +
+            sizeof( unsigned short ) * tupleFieldCount;
+            
+    // Sum to size the tuple field name sizes
+    for ( int i = 0; i < tupleFieldCount; i ++ )
+    {
+        length += fieldNameSizes[i];
+    } // End for
+
+    return length;
 
 } // End getSerialFormSize
 
@@ -94,7 +103,15 @@ char* Meta::serialize()
     offset = serialization;
 
     // Copy values onto the heap-reserved memory:
-    
+
+    // Copy table name length indicator 
+    memcpy( offset, &tableNameLength, sizeof( tableNameLength ) );
+    offset = (char*) (offset + sizeof( tableNameLength ));
+
+    // Copy table name
+    memcpy( offset, tableName, tableNameLength);
+    offset = (char*) (offset + tableNameLength);
+
     // Copy byte size indicator
     memcpy( offset, &tupleByteSize, sizeof( tupleByteSize ) );
     offset = (char*) (offset + sizeof( tupleByteSize ));
@@ -122,6 +139,17 @@ char* Meta::serialize()
     // Copy array of the fields that compose the primary key 
     memcpy( offset, primaryKeyFields, sizeof( unsigned short ) * primaryKeyFieldCount );
     offset = (char*) (offset + sizeof( unsigned short ) * primaryKeyFieldCount );
+
+    // Copy array of the field lengths
+    memcpy( offset, fieldNameSizes, sizeof( unsigned short ) * tupleFieldCount );
+    offset = (char*) (offset + sizeof( unsigned short ) * tupleFieldCount );
+
+    // Copy field names
+    for (int i = 0; i < tupleFieldCount; i++)
+    {
+        memcpy( offset, fieldNames[i], fieldNameSizes[i] );
+        offset = (char*) (offset + fieldNameSizes[i] );
+    } // End for
 
     return serialization;
 
