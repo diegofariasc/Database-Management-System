@@ -1,8 +1,65 @@
 #include "Meta.h"
 
 // ------------------------------------------------------------
-// CONSTRUCTORS 
+// CONSTRUCTORS AND INIT METHOD
 // ------------------------------------------------------------
+void Meta::init(
+    unsigned short  tableNameLength, 
+    char*           tableName, 
+    unsigned int    tupleByteSize,
+    unsigned short  tupleFieldCount, 
+    unsigned short* tupleFieldTypes, 
+    unsigned int*   tupleFieldSizes, 
+    unsigned int*   tupleFieldPositions,
+    unsigned short  primaryKeyFieldCount, 
+    unsigned short* primaryKeyFields, 
+    unsigned short* fieldNameSizes, 
+    char**          fieldNames ){
+
+    this->tableNameLength = tableNameLength;
+    this->tableName = tableName;
+    this->tupleByteSize = tupleByteSize;
+    this->tupleFieldCount = tupleFieldCount;
+    this->tupleFieldTypes = tupleFieldTypes;
+    this->tupleFieldSizes = tupleFieldSizes;
+    this->tupleFieldPositions = tupleFieldPositions;
+    this->primaryKeyFieldCount = primaryKeyFieldCount;
+    this->primaryKeyFields = primaryKeyFields;
+    this->fieldNameSizes = fieldNameSizes;
+    this->fieldNames = fieldNames;
+    
+
+} // End init
+
+Meta::Meta( 
+    unsigned short  tableNameLength, 
+    char*           tableName, 
+    unsigned int    tupleByteSize,
+    unsigned short  tupleFieldCount, 
+    unsigned short* tupleFieldTypes, 
+    unsigned int*   tupleFieldSizes, 
+    unsigned int*   tupleFieldPositions,
+    unsigned short  primaryKeyFieldCount, 
+    unsigned short* primaryKeyFields, 
+    unsigned short* fieldNameSizes, 
+    char**          fieldNames )
+{
+
+    init (  tableNameLength, 
+            tableName, 
+            tupleByteSize,
+            tupleFieldCount, 
+            tupleFieldTypes, 
+            tupleFieldSizes, 
+            tupleFieldPositions,
+            primaryKeyFieldCount, 
+            primaryKeyFields, 
+            fieldNameSizes, 
+            fieldNames );
+            
+
+} // End constructor
+
 Meta::Meta( unsigned short      tableNameLength,
             char*               tableName,
             unsigned short      tupleFieldCount,
@@ -13,31 +70,36 @@ Meta::Meta( unsigned short      tableNameLength,
             unsigned short*     fieldNameSizes, 
             char**              fieldNames  )
 {
-    // Set attributes that are given
-    this->tableNameLength = tableNameLength;
-    this->tableName = tableName;
-    this->tupleFieldCount = tupleFieldCount;
-    this->tupleFieldTypes = tupleFieldTypes;
-    this->tupleFieldSizes = tupleFieldSizes;
-    this->primaryKeyFieldCount = primaryKeyFieldCount;
-    this->primaryKeyFields = primaryKeyFields;
-    this->fieldNameSizes = fieldNameSizes;
-    this->fieldNames = fieldNames;
 
     // Initialize byte positions array and byte size
-    this->tupleFieldPositions = (unsigned int*) malloc( sizeof( tupleFieldCount * sizeof(unsigned int) ) );
-    this->tupleByteSize = 0;
+    unsigned int* tupleFieldPositions;
+    unsigned int  tupleByteSize;
+
+    tupleFieldPositions = (unsigned int*) malloc( sizeof( tupleFieldCount * sizeof(unsigned int) ) );
+    tupleByteSize = 0;
 
     // Iterate over all fields of the tuples
     for (int i = 0; i < tupleFieldCount; i++)
     {
         // Indicate starting positions of each field
-        this->tupleFieldPositions[i] = this->tupleByteSize;
+        tupleFieldPositions[i] = tupleByteSize;
 
         // Add to tuple byte size 
-        this->tupleByteSize += tupleFieldSizes[i];
+        tupleByteSize += tupleFieldSizes[i];
 
     } // End for
+
+    init (  tableNameLength, 
+            tableName, 
+            tupleByteSize,
+            tupleFieldCount, 
+            tupleFieldTypes, 
+            tupleFieldSizes, 
+            tupleFieldPositions,
+            primaryKeyFieldCount, 
+            primaryKeyFields, 
+            fieldNameSizes, 
+            fieldNames );
 
 } // End constructor
 
@@ -124,7 +186,7 @@ char* Meta::serialize()
     memcpy( offset, tupleFieldTypes, sizeof( unsigned short ) * tupleFieldCount );
     offset = (char*) (offset + sizeof( unsigned short ) * tupleFieldCount );
 
-    // Copy array with field types
+    // Copy array with field sizes
     memcpy( offset, tupleFieldSizes, sizeof( unsigned int ) * tupleFieldCount );
     offset = (char*) (offset + sizeof( unsigned int ) * tupleFieldCount );
 

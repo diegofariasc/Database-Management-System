@@ -15,6 +15,7 @@ class DiskManager
         void storeMetadata( Meta* meta );
 
         Tuple* readTupleAt( disk_pointer position, Meta* meta );
+        Meta* readMetadata( char* tableName );
 
 }; // End class
 

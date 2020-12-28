@@ -30,17 +30,53 @@ class Meta : Serializable
         char**          fieldNames;                 // Names of the fields
 
 
+
     // ------------------------------------------------------------
     // METHODS
     // ------------------------------------------------------------
+    private:
+
+        // Initialization helping method
+        void init(  
+            unsigned short  tableNameLength, 
+            char*           tableName, 
+            unsigned int    tupleByteSize,
+            unsigned short  tupleFieldCount, 
+            unsigned short* tupleFieldTypes, 
+            unsigned int*   tupleFieldSizes, 
+            unsigned int*   tupleFieldPositions,
+            unsigned short  primaryKeyFieldCount, 
+            unsigned short* primaryKeyFields, 
+            unsigned short* fieldNameSizes, 
+            char**          fieldNames );    
+
     public:
 
         // Constructor methods
-        Meta();                                 
-        Meta(   unsigned short tableNameLength, char* tableName, unsigned short tupleFieldCount, 
-                unsigned short* tupleFieldTypes, unsigned int* tupleFieldSizes, 
-                unsigned short primaryKeyFieldCount, unsigned short* primaryKeyFields, 
-                unsigned short* fieldNameSizes, char** fieldNames );
+        Meta();                          
+        Meta(   
+            unsigned short  tableNameLength, 
+            char*           tableName, 
+            unsigned int    tupleByteSize,
+            unsigned short  tupleFieldCount, 
+            unsigned short* tupleFieldTypes, 
+            unsigned int*   tupleFieldSizes, 
+            unsigned int*   tupleFieldPositions,
+            unsigned short  primaryKeyFieldCount, 
+            unsigned short* primaryKeyFields, 
+            unsigned short* fieldNameSizes, 
+            char**          fieldNames );    
+
+        Meta(   
+            unsigned short  tableNameLength, 
+            char*           tableName, 
+            unsigned short  tupleFieldCount, 
+            unsigned short* tupleFieldTypes, 
+            unsigned int*   tupleFieldSizes, 
+            unsigned short  primaryKeyFieldCount, 
+            unsigned short* primaryKeyFields, 
+            unsigned short* fieldNameSizes, 
+            char**          fieldNames );
 
         unsigned short  getTableNameLength();                       // Get table name length
         char*           getTableName();                             // Get the name of the table
