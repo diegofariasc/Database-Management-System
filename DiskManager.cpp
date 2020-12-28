@@ -1,7 +1,9 @@
 #include "DiskManager.h"
 #include "Exceptions.h"
 
-/* The exception allows to write a metadata object into a .meta
+#include <iostream>
+
+/* The method allows to write a metadata object into a .meta
 file for further usage
 Input:  meta with the meta object to store
 Output: void
@@ -13,9 +15,11 @@ void DiskManager::storeMetadata( Meta* meta )
     // Variables
     FILE* pointer;
     char* serializedForm;
+    std::string fileName( meta->getTableName() );
 
     // Open file
-    pointer = fopen("metadata.meta","wb");
+    fileName += ".meta";
+    pointer = fopen( fileName.c_str() ,"wb");
 
     // Check if the system is able to access the file to store
     if ( pointer == NULL)
@@ -41,7 +45,7 @@ void DiskManager::storeMetadata( Meta* meta )
 } // End storeMetadata
 
 
-/* The exception allows to append a tuple object into a .data
+/* The method allows to append a tuple object into a .data
 file for further usage. The method saves the storing location into 
 the tuple object's diskLocation attribute
 Input:  tuple with the tuple object to store
@@ -54,9 +58,11 @@ void DiskManager::insertTuple( Tuple* tuple )
     FILE* pointer;
     char* serializedForm;
     disk_pointer location;
+    std::string fileName( tuple->meta->getTableName() );
 
     // Open file
-    pointer = fopen("content.data","ab+");
+    fileName += ".data";
+    pointer = fopen( fileName.c_str() ,"ab+");
 
     // Check if the system is able to access the file to store
     if ( pointer == NULL)
@@ -86,7 +92,7 @@ void DiskManager::insertTuple( Tuple* tuple )
 } // End insertTuple
 
 
-/* The exception allows to read a tuple from a .data file
+/* The method allows to read a tuple from a .data file
 Input:  position with the position (in disk) of the required tuple
         meta with the metadata associated with the tuple to read
 Output: Tuple* with a new tuple instance whose payload was read
@@ -98,9 +104,12 @@ Tuple* DiskManager::readTupleAt( disk_pointer position, Meta* meta )
     FILE* pointer;
     Tuple* tuple;
     char* readPayload;
+    std::string fileName( meta->getTableName() );
 
     // Open file
-    pointer = fopen("content.data","rb");
+    fileName += ".data";
+    pointer = fopen( fileName.c_str() ,"rb");
+
 
     // Check if the system is able to access the file to store
     if ( pointer == NULL)
@@ -129,3 +138,9 @@ Tuple* DiskManager::readTupleAt( disk_pointer position, Meta* meta )
     return tuple;
 
 } // End readTupleAt
+
+
+/* The method allows to read a metadata from a .meta file
+Input:  tableName with the name of the table whose metadata must be searched
+Output: Tuple* with a new tuple instance whose payload was read
+*/
