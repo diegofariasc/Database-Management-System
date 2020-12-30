@@ -26,6 +26,7 @@ class Meta : Serializable
         unsigned int*   tupleFieldPositions;        // Positions at which each field starts
         unsigned short  primaryKeyFieldCount;       // Number of fields in the primary key
         unsigned short* primaryKeyFields;           // Array with the number of fields at which the primary key is found
+        unsigned int    primaryKeyByteSize;         // Size in bytes of the primary key
         unsigned short* fieldNameSizes;             // Sizes of each field in bytes
         char**          fieldNames;                 // Names of the fields
 
@@ -47,6 +48,7 @@ class Meta : Serializable
             unsigned int*   tupleFieldPositions,
             unsigned short  primaryKeyFieldCount, 
             unsigned short* primaryKeyFields, 
+            unsigned int    primaryKeyByteSize,
             unsigned short* fieldNameSizes, 
             char**          fieldNames );    
 
@@ -64,6 +66,7 @@ class Meta : Serializable
             unsigned int*   tupleFieldPositions,
             unsigned short  primaryKeyFieldCount, 
             unsigned short* primaryKeyFields, 
+            unsigned int    primaryKeyByteSize,
             unsigned short* fieldNameSizes, 
             char**          fieldNames );    
 
@@ -87,7 +90,9 @@ class Meta : Serializable
         unsigned short  getFieldStart( unsigned short position );   // Get the starting byte of the n-th field in the tuple
         unsigned short  getFieldNameSize( unsigned short position );// Get the size of the name of the n-th field in the tuple
         char*           getFieldName( unsigned short position );    // Get the size of the name of the n-th field in the tuple
-        unsigned short  getPrimaryFieldCount();                     // Get the size of the primary key
+        unsigned short  getPrimaryField( unsigned short position ); // Get the n-th field of the primary key
+        unsigned short  getPrimaryFieldCount();                     // Get the size of the primary key in fields
+        unsigned int    getPrimaryKeyByteSize();                    // Get the size of the primary key in bytes
 
         char*           serialize();                                // Comply with the virtual serialization method
         unsigned int    getSerialFormSize();                        // Comply with the virtual serial form size calculation method

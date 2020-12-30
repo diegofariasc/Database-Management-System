@@ -13,6 +13,7 @@ void Meta::init(
     unsigned int*   tupleFieldPositions,
     unsigned short  primaryKeyFieldCount, 
     unsigned short* primaryKeyFields, 
+    unsigned int    primaryKeyByteSize,
     unsigned short* fieldNameSizes, 
     char**          fieldNames ){
 
@@ -25,6 +26,7 @@ void Meta::init(
     this->tupleFieldPositions = tupleFieldPositions;
     this->primaryKeyFieldCount = primaryKeyFieldCount;
     this->primaryKeyFields = primaryKeyFields;
+    this->primaryKeyByteSize = primaryKeyByteSize;
     this->fieldNameSizes = fieldNameSizes;
     this->fieldNames = fieldNames;
     
@@ -41,6 +43,7 @@ Meta::Meta(
     unsigned int*   tupleFieldPositions,
     unsigned short  primaryKeyFieldCount, 
     unsigned short* primaryKeyFields, 
+    unsigned int    primaryKeyByteSize,
     unsigned short* fieldNameSizes, 
     char**          fieldNames )
 {
@@ -54,6 +57,7 @@ Meta::Meta(
             tupleFieldPositions,
             primaryKeyFieldCount, 
             primaryKeyFields, 
+            primaryKeyByteSize,
             fieldNameSizes, 
             fieldNames );
             
@@ -74,6 +78,7 @@ Meta::Meta( unsigned short      tableNameLength,
     // Initialize byte positions array and byte size
     unsigned int* tupleFieldPositions;
     unsigned int  tupleByteSize;
+    unsigned int  primaryKeyByteSize;
 
     tupleFieldPositions = (unsigned int*) malloc( sizeof( tupleFieldCount * sizeof(unsigned int) ) );
     tupleByteSize = 0;
@@ -89,6 +94,16 @@ Meta::Meta( unsigned short      tableNameLength,
 
     } // End for
 
+    primaryKeyByteSize = 0;
+    // Iterate over all primary key fields of the tuples
+    for (int i = 0; i < primaryKeyFieldCount; i++)
+    {
+        // Add to primary key byte size 
+        primaryKeyByteSize += tupleFieldSizes[ primaryKeyFields[i] ];
+
+    } // End for
+
+
     init (  tableNameLength, 
             tableName, 
             tupleByteSize,
@@ -98,6 +113,7 @@ Meta::Meta( unsigned short      tableNameLength,
             tupleFieldPositions,
             primaryKeyFieldCount, 
             primaryKeyFields, 
+            primaryKeyByteSize,
             fieldNameSizes, 
             fieldNames );
 
@@ -114,7 +130,7 @@ char*           Meta::getTableName()            { return tableName; }
 unsigned int    Meta::getTupleByteSize()        { return tupleByteSize; }
 unsigned short  Meta::getFieldCount()           { return tupleFieldCount; }
 unsigned short  Meta::getPrimaryFieldCount()    { return primaryKeyFieldCount; }
-
+unsigned int    Meta::getPrimaryKeyByteSize()   { return primaryKeyByteSize; }
 
 // With parameters
 unsigned short  Meta::getFieldType( unsigned short position )       { return tupleFieldTypes[ position ]; }
@@ -122,6 +138,7 @@ unsigned short  Meta::getFieldSize( unsigned short position )       { return tup
 unsigned short  Meta::getFieldStart( unsigned short position )      { return tupleFieldPositions[ position ]; }
 unsigned short  Meta::getFieldNameSize( unsigned short position )   { return fieldNameSizes[ position ]; }
 char*           Meta::getFieldName( unsigned short position )       { return fieldNames[ position ]; }
+unsigned short  Meta::getPrimaryField( unsigned short position )    { return primaryKeyFields[ position ]; }
 
 // ------------------------------------------------------------
 // MANDATORY METHOD [VIRTUAL] 
@@ -137,6 +154,7 @@ unsigned int Meta::getSerialFormSize()
             sizeof( unsigned int ) * tupleFieldCount * 2 + 
             sizeof( primaryKeyFieldCount ) + 
             sizeof( unsigned short ) * primaryKeyFieldCount +
+            sizeof( primaryKeyByteSize ) +
             sizeof( unsigned short ) * tupleFieldCount;
             
     // Sum to size the tuple field name sizes
@@ -161,7 +179,7 @@ char* Meta::serialize()
     serializedSize = getSerialFormSize();
 
     // Reserve heap memory and create an iteration pointer
-    serialization = (char*) calloc( 0, serializedSize );
+    serialization = (char*) malloc( serializedSize );
     offset = serialization;
 
     // Copy values onto the heap-reserved memory:
@@ -201,6 +219,10 @@ char* Meta::serialize()
     // Copy array of the fields that compose the primary key 
     memcpy( offset, primaryKeyFields, sizeof( unsigned short ) * primaryKeyFieldCount );
     offset = (char*) (offset + sizeof( unsigned short ) * primaryKeyFieldCount );
+
+    // Copy indicator of the primary key size
+    memcpy( offset, &primaryKeyByteSize, sizeof( primaryKeyByteSize ) );
+    offset = (char*) (offset + sizeof( primaryKeyByteSize ));
 
     // Copy array of the field lengths
     memcpy( offset, fieldNameSizes, sizeof( unsigned short ) * tupleFieldCount );
