@@ -26,4 +26,11 @@ class UnaccessibleDatabaseDataFile : public std::exception {
 
 }; // End class
 
+class UnaccessibleIndexFile : public std::exception {   
+
+    public:
+        const char* what();
+
+}; // End class
+
 #endif

@@ -31,3 +31,13 @@ const char* UnaccessibleDatabaseDataFile::what()
 {
     return "Error IO-1 Unaccessible database data file: \nThe system wasn't able to read/write onto the database content file";
 } // End InvalidType::what
+
+/* The exception occurs when the system requires an index
+file to be read/written but the access isn't conceeded by the OS
+Input:  Void
+Output: (string) indicating the causing error
+*/
+const char* UnaccessibleIndexFile::what() 
+{
+    return "Error IO-2 Unaccessible index file: \nThe system wasn't able to read/write onto the index file";
+} // End InvalidType::what

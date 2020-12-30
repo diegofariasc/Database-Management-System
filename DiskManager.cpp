@@ -1,7 +1,5 @@
 #include "DiskManager.h"
-#include "Exceptions.h"
 
-#include <iostream>
 
 /* The method allows to write a metadata object into a .meta
 file for further usage
@@ -22,7 +20,7 @@ void DiskManager::storeMetadata( Meta* meta )
     pointer = fopen( fileName.c_str() ,"wb");
 
     // Check if the system is able to access the file to store
-    if ( pointer == NULL)
+    if ( !pointer )
     {
         throw UnaccessibleDatabaseMetadata();
     } // End if 
@@ -65,7 +63,7 @@ void DiskManager::insertTuple( Tuple* tuple )
     pointer = fopen( fileName.c_str() ,"ab+");
 
     // Check if the system is able to access the file to store
-    if ( pointer == NULL)
+    if ( !pointer )
     {
         throw UnaccessibleDatabaseDataFile();
     } // End if 
@@ -80,7 +78,7 @@ void DiskManager::insertTuple( Tuple* tuple )
         fwrite( serializedForm, tuple->getSerialFormSize(), 1, pointer );
 
         // Set in-disk location to the tuple for further usage
-        location = ftell(pointer) / tuple->meta->getTupleByteSize();
+        location = (ftell(pointer) / tuple->meta->getTupleByteSize()) - 1;
         tuple->setDiskLocation( location );
 
         // Release resources
@@ -112,7 +110,7 @@ Tuple* DiskManager::readTupleAt( disk_pointer position, Meta* meta )
 
 
     // Check if the system is able to access the file to read
-    if ( pointer == NULL)
+    if ( !pointer )
     {
         throw UnaccessibleDatabaseDataFile();
     } // End if 
@@ -166,6 +164,7 @@ Meta* DiskManager::readMetadata( char* tableName )
     unsigned int*   tupleFieldPositions;
     unsigned short  primaryKeyFieldCount; 
     unsigned short* primaryKeyFields;
+    unsigned int    primaryKeyByteSize;
     unsigned short* fieldNameSizes;
     char*           fieldName;
     char**          fieldNames;
@@ -176,7 +175,7 @@ Meta* DiskManager::readMetadata( char* tableName )
 
 
     // Check if the system is able to access the file to read
-    if ( pointer == NULL)
+    if ( !pointer )
     {
         throw UnaccessibleDatabaseMetadata();
     } // End if 
@@ -226,7 +225,7 @@ Meta* DiskManager::readMetadata( char* tableName )
         memcpy( tupleFieldPositions, offset, sizeof( unsigned int ) * tupleFieldCount );
         offset = (char*) (offset + sizeof( unsigned int ) * tupleFieldCount );
 
-        // Extract indicator of the primary key size
+        // Extract indicator of the primary key size in fields
         memcpy( &primaryKeyFieldCount, offset, sizeof( primaryKeyFieldCount ) );
         offset = (char*) (offset + sizeof( primaryKeyFieldCount ));
 
@@ -234,6 +233,10 @@ Meta* DiskManager::readMetadata( char* tableName )
         primaryKeyFields = (unsigned short*) malloc( sizeof( unsigned short ) * primaryKeyFieldCount );
         memcpy( primaryKeyFields, offset, sizeof( unsigned short ) * primaryKeyFieldCount );
         offset = (char*) (offset + sizeof( unsigned short ) * primaryKeyFieldCount );
+
+        // Extract indicator of the primary key size in bytes
+        memcpy( &primaryKeyByteSize, offset, sizeof( primaryKeyByteSize ) );
+        offset = (char*) (offset + sizeof( primaryKeyByteSize ));
 
         // Extract array of the field name lengths
         fieldNameSizes = (unsigned short*) malloc( sizeof( unsigned short ) * tupleFieldCount );
@@ -255,7 +258,8 @@ Meta* DiskManager::readMetadata( char* tableName )
         // Build returning object
         meta = new Meta(tableNameLength, tableName, tupleByteSize, tupleFieldCount, 
                         tupleFieldTypes, tupleFieldSizes, tupleFieldPositions,
-                        primaryKeyFieldCount, primaryKeyFields, fieldNameSizes, fieldNames );
+                        primaryKeyFieldCount, primaryKeyFields, primaryKeyByteSize,
+                        fieldNameSizes, fieldNames );
 
 
         // Release resources
@@ -266,3 +270,255 @@ Meta* DiskManager::readMetadata( char* tableName )
     return meta;
 
 } // End readMetadata
+
+
+void DiskManager::storeBPTree(BPTree* tree)
+{
+    // Variables
+    FILE* pointer;
+    char* serializedForm;
+    std::string fileName( tree->meta->getTableName() );
+
+    // Open file
+    fileName += ".bpindexconf";
+    pointer = fopen( fileName.c_str() ,"wb");
+
+    // Check if the system is able to access the file to store
+    if ( !pointer )
+    {
+        throw UnaccessibleIndexFile();
+    } // End if 
+
+    else 
+    {
+        // Acquire the serialized form with the built-in method
+        serializedForm = tree->serialize();
+
+        // Move the pointer to the beginning and write 
+        fseek( pointer, 0L, SEEK_SET);
+        fwrite( serializedForm, tree->getSerialFormSize(), 1, pointer );
+
+        // Release resources
+        free(serializedForm);
+        fclose( pointer ); 
+
+    } // End else
+
+} // End storeBPTree
+
+void DiskManager::insertBPLeaf(BPTree::BPLeaf* leaf)
+{
+    // Variables
+    FILE* pointer;
+    char* serializedForm;
+    std::string fileName( leaf->meta->getTableName() );
+    disk_pointer position;
+
+    // Open file
+    fileName += ".bpindex";
+    pointer = fopen( fileName.c_str() ,"ab+");
+
+    // Check if the system is able to access the file to store
+    if ( !pointer )
+    {
+        throw UnaccessibleIndexFile();
+    } // End if 
+
+    else 
+    {
+        // Acquire the serialized form with the built-in method
+        serializedForm = leaf->serialize();
+
+        // Move the pointer to the beginning and write 
+        fseek( pointer, 0L, SEEK_END);
+        fwrite( serializedForm, leaf->getSerialFormSize(), 1, pointer );
+        
+        // Calculate insertion position and set it
+        position = (ftell(pointer) / leaf->getSerialFormSize()) -1;
+        leaf->diskLocation = position;
+
+        // Release resources
+        free(serializedForm);
+        fclose(pointer); 
+        
+
+    } // End else
+
+} // End insertBPLeaf
+
+void DiskManager::updateBPLeaf(BPTree::BPLeaf* leaf)
+{
+    // Variables
+    FILE* pointer;
+    char* serializedForm;
+    std::string fileName( leaf->meta->getTableName() );
+    disk_pointer position;
+
+    // Open file
+    fileName += ".bpindex";
+    pointer = fopen( fileName.c_str() ,"wb");
+
+    // Check if the system is able to access the file to store
+    if ( !pointer )
+    {
+        throw UnaccessibleIndexFile();
+    } // End if 
+
+    else 
+    {
+        // Acquire the serialized form with the built-in method
+        serializedForm = leaf->serialize();
+
+        // Move the pointer to the appropiate position and write
+        fseek( pointer, 0L, leaf->diskLocation * leaf->getSerialFormSize() );
+        fwrite( serializedForm, leaf->getSerialFormSize(), 1, pointer );
+
+        // Release resources
+        free(serializedForm);
+        fclose(pointer); 
+
+    } // End else
+
+} // End insertBPLeaf
+
+
+BPTree::BPLeaf* DiskManager::readBPLeafAt(disk_pointer position, Meta* meta)
+{
+
+    // Variables
+    FILE* pointer;
+    BPTree::BPLeaf* leaf;
+    char* readBytes;
+    char* offset;
+    char* key;
+    char** keys;
+    unsigned int leafByteSize;
+    unsigned short filling;
+    disk_pointer* diskPointers;
+    disk_pointer parent;
+    std::string fileName( meta->getTableName() );
+
+    // Open file
+    fileName += ".bpindex";
+    pointer = fopen( fileName.c_str() ,"rb");
+
+    // Check if the system is able to access the file to read
+    if ( !pointer )
+    {
+        throw UnaccessibleIndexFile();
+    } // End if 
+
+    else 
+    {
+        // Allocate space for storing read values
+        leafByteSize =  sizeof(disk_pointer) * BP_POINTERS + 
+                        meta->getPrimaryKeyByteSize() * (BP_POINTERS - 1) +
+                        sizeof (unsigned short) + sizeof(disk_pointer);
+        readBytes = (char*) malloc( leafByteSize );
+
+        // Move the pointer to the appropiate position and read
+        fseek( pointer, 0L, leafByteSize * position );
+        fread( readBytes, leafByteSize, 1, pointer );
+
+        // Extract values from raw bytes onto appropiate variables
+        offset = readBytes;
+
+        // Extract parent pointer
+        memcpy( &parent, offset, sizeof( parent ) );
+        offset = (char*) (offset + sizeof( parent ));
+
+        // Extract filling counter
+        memcpy( &filling, offset, sizeof( filling ) );
+        offset = (char*) (offset + sizeof( filling ));
+
+        // Extract pointers
+        diskPointers = (disk_pointer*) malloc( sizeof(disk_pointer) * BP_POINTERS );
+        memcpy( diskPointers, offset, sizeof(disk_pointer) * BP_POINTERS);
+        offset = (char*) (offset + (sizeof(disk_pointer) * BP_POINTERS));
+
+        // Extract keys 
+        keys = (char**) malloc( sizeof(char*) * (BP_POINTERS - 1) );
+        for (int i = 0; i < BP_POINTERS - 1; i++)
+        {
+
+            // If less than filling counter, then add the key value
+            if ( i < filling )
+            {
+                key = (char*) malloc( meta->getPrimaryKeyByteSize() );
+                memcpy(key, offset, meta->getPrimaryKeyByteSize());
+                offset = (char*) (offset + meta->getPrimaryKeyByteSize());
+                keys[i] = key;
+            } // End if 
+
+            // Otherwise add a null pointer
+            else{
+                keys[i] = NULL;
+            } // End else
+        } // End for 
+
+        // Build new leaf 
+        leaf = new BPTree::BPLeaf(meta, filling, diskPointers, keys, parent);
+
+        // Release resources
+        free(readBytes);
+        fclose(pointer); 
+
+    } // End else
+
+    return leaf;
+
+} // End readBPLeafAt
+
+
+BPTree* DiskManager::readBPTree(Meta* meta)
+{
+
+    // Variables
+    FILE*               pointer;
+    BPTree*             tree;
+    char*               readBytes;
+    char*               offset;
+    disk_pointer        root;
+    unsigned long long  byteSize;
+    std::string         fileName( meta->getTableName() );
+
+    // Open file
+    fileName += ".bpindexconf";
+    pointer = fopen( fileName.c_str() ,"rb");
+
+    // Check if the system is able to access the file to read
+    if ( !pointer )
+    {
+        throw UnaccessibleIndexFile();
+    } // End if 
+
+    else 
+    {
+        // Allocate space for storing read values
+        fseek( pointer, 0L, SEEK_END );
+        byteSize = ftell( pointer );
+        readBytes = (char*) malloc( sizeof(disk_pointer) );
+
+        // Move the pointer to the appropiate position and read
+        fseek( pointer, 0L, SEEK_SET );
+        fread( readBytes, byteSize , 1, pointer );
+
+        // Extract values from raw bytes onto appropiate variables
+        offset = readBytes;
+
+        // Extract root pointer
+        memcpy( &root, offset, sizeof( root ) );
+        offset = (char*) (offset + sizeof( root ));
+
+        // Build new tree    
+        tree = new BPTree (meta, root);
+
+        // Release resources
+        free(readBytes);
+        fclose(pointer); 
+
+    } // End else
+
+    return tree;
+
+} // End readBPLeafAt
