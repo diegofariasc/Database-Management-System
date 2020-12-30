@@ -10,8 +10,6 @@ class Tuple : Serializable
         
         char*           payload;        // Bytes with the tuple content
         disk_pointer    diskLocation;   // Location of the tuple in the disk
-
-        char*   getPrimary();   // Method to get a char array with the tuple's primary key
         
     public:
 
@@ -30,6 +28,12 @@ class Tuple : Serializable
 
         // Method to set a tuple's location in disk
         void setDiskLocation( disk_pointer position );
+
+        // Method to get a tuple's location in disk
+        disk_pointer getDiskLocation();
+
+        // Method to get a char array with the tuple's primary key
+        char* getPrimary();   
 
         // Comply with the virtual serialization method
         char* serialize();        

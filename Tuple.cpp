@@ -103,6 +103,37 @@ void Tuple::setDiskLocation( disk_pointer position )
     diskLocation = position;
 } // End setDiskLocation
 
+/* The method allows to extract an array of char that represents the 
+primary key of the tuple
+Input:  void
+Output: char* with the primary key in byte-representation
+Note: Method is safe as given char* is in heap already
+*/
+char* Tuple::getPrimary()
+{
+
+    char* primaryKey;
+    char* offset;
+
+    primaryKey = (char*) malloc( meta->getPrimaryKeyByteSize() );
+    offset = primaryKey;
+    
+    for ( int i = 0; i < meta->getPrimaryFieldCount(); i++ )
+    {
+        memcpy( offset, payload + meta->getFieldStart( meta->getPrimaryField(i) ), meta->getFieldSize( meta->getPrimaryField(i) ) );
+        offset = (char*) (offset + meta->getFieldSize( meta->getPrimaryField(i) ));
+    } // End for
+
+    return primaryKey;
+
+} // End getPrimary
+
+disk_pointer Tuple::getDiskLocation()
+{
+    return diskLocation;
+} // End getDiskLocation
+
+
 // ------------------------------------------------------------
 // MANDATORY METHOD [VIRTUAL] 
 // ------------------------------------------------------------
@@ -118,3 +149,4 @@ unsigned int Tuple::getSerialFormSize()
 {
     return meta->getTupleByteSize();
 } // End getSerialFormSize
+
