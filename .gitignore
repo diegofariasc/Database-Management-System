@@ -11,6 +11,7 @@
 # Ignore database-produced files
 *.data
 *.meta
+*.bpindexconf
 *.bpindex
 
 # Temporarily ignore main, where tests are being carried
