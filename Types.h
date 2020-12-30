@@ -1,6 +1,8 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
+#include <limits.h>
+
 // ------------------------------------------------------------
 // FIXED LENGTH TYPES
 // ------------------------------------------------------------
@@ -27,7 +29,7 @@
 // INTERNAL TYPES AND VALUES
 // ------------------------------------------------------------
 typedef unsigned long long disk_pointer;
-#define NULL_DISK_POINTER  0x0
+#define NULL_DISK_POINTER ULLONG_MAX
 
 // Definition of variable sizes
 const unsigned int VARSIZES[] = {1, 2, 4, 8, 1, 2, 4, 8, 4, 8, 1, 1};
