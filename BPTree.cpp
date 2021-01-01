@@ -239,9 +239,9 @@ BPTree::BPLeaf* BPTree::BPLeaf::split()
 
     } // End for
 
-    if (!isLeaf)
-    {
+    if (!isLeaf){
         newLeaf->diskPointers[newLeafOffset] = diskPointers[i];
+        diskPointers[i] = NULL_DISK_POINTER;
     } // End if
 
     return newLeaf;
@@ -257,6 +257,7 @@ void BPTree::BPLeaf::shiftLeft()
         diskPointers[i] = diskPointers[i+1];
     } // End for
     
+    diskPointers[filling] = NULL_DISK_POINTER;
     filling--;
 
 } // End shiftLeft
