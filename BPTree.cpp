@@ -16,6 +16,9 @@ void BPTree::BPLeaf::print()
     else
         printf("p = %llu ", parent);
 
+    printf(" l = %d ", isLeaf);
+    printf(" f = %d ", filling);
+
     for (int i = 0; i < BP_POINTERS - 1; i++)
     {
 
@@ -60,16 +63,19 @@ BPTree::BPLeaf::BPLeaf(Meta* meta)
     } // End for
 
     this->parent = NULL_DISK_POINTER;
+    this->isLeaf = true;
 
 } // End constructor
 
-BPTree::BPLeaf::BPLeaf(Meta* meta, unsigned short filling, disk_pointer* diskPointers, char** keys, disk_pointer parent )
+BPTree::BPLeaf::BPLeaf(Meta* meta, unsigned short filling, disk_pointer* diskPointers, char** keys, disk_pointer parent, bool isLeaf, disk_pointer diskLocation )
 {
     this->meta = meta;
     this->filling = filling;
     this->diskPointers = diskPointers;
     this->keys = keys;
     this->parent = parent;
+    this->isLeaf = isLeaf;
+    this->diskLocation = diskLocation;
 
 } // End constructor
 
@@ -102,18 +108,61 @@ void BPTree::BPLeaf::insert( disk_pointer pointer, char* key )
 
     // With the position already found:
 
-    // Right shift to open space for the new key
-    shiftRight(i);
+    if ( i < filling )
+    {
+        // Right shift to open space for the new key
+        shiftRight(i);
+
+        if ( memcmp( key, keys[i], meta->getPrimaryKeyByteSize() ) >= 0 || isLeaf )
+            diskPointers[i] = NULL_DISK_POINTER;
+
+
+    } // End if
 
     // Insert at freed position
     keys[i] = key;
-    diskPointers[i] = pointer;
+    
+    if ( diskPointers[i] == NULL_DISK_POINTER )
+        diskPointers[i] = pointer;
+    else
+        diskPointers[i+1] = pointer;
 
     // Increase filling counter
     filling ++;
 
 } // End insert
 
+
+BPTree::BPLeaf* BPTree::searchLeaf( char* key )
+{
+
+    // Variables
+    BPTree::BPLeaf* auxiliar;
+    DiskManager* manager;
+    unsigned short i;
+
+    // Start at root
+    auxiliar = manager->readBPLeafAt( root, meta );
+
+    // Go downwards until a leaf is reached
+    while ( ! auxiliar->isLeaf )
+    {
+
+        for ( i = 0; i < auxiliar->filling; i++ )
+        {
+            if ( memcmp( key, auxiliar->keys[i], meta->getPrimaryKeyByteSize() ) < 0 )
+                break;
+                 
+        } // End for
+
+        // Move downwards
+        auxiliar = manager->readBPLeafAt( auxiliar->diskPointers[i] , meta);
+        
+    } // End while
+
+    return auxiliar;
+
+} // End search
 
 /*
 The method allows to shift all keys and pointers to the right,
@@ -126,6 +175,12 @@ such shifting
 */
 void BPTree::BPLeaf::shiftRight( unsigned short position )
 {
+
+    // Check if the right pointer is occupied if so shift it previously
+    if ( diskPointers[filling] != NULL_DISK_POINTER )
+    {
+        diskPointers[filling + 1] = diskPointers[filling];
+    } // End if
 
     // Move all keys and disk pointers one position to right
     // freeing the cell indicated by position
@@ -148,22 +203,25 @@ BPTree::BPLeaf* BPTree::BPLeaf::split()
 {
     unsigned short cutPoint;
     unsigned short newLeafOffset;
+    int i;
     BPTree::BPLeaf* newLeaf;
 
     // Calculate half of the leaf: BP_POINTERS is already L + 1 keys
     cutPoint = BP_POINTERS / 2;
     newLeaf = new BPTree::BPLeaf ( meta );
-
+    newLeaf->isLeaf = isLeaf;
 
     // Offset of writing in the new leaf
     newLeafOffset = 0;
 
     // Copy in order so that insertion call is avoided (slower)
-    for ( int i = cutPoint; i < BP_POINTERS; i ++ )
+    for ( i = cutPoint; i < BP_POINTERS -1; i ++ )
     {
         // Copy disk pointers
         newLeaf->diskPointers[newLeafOffset] = diskPointers[i];
-        diskPointers[i] = NULL_DISK_POINTER;
+
+        if (isLeaf || i != cutPoint)
+            diskPointers[i] = NULL_DISK_POINTER;
 
         // Copy keys only if possible 
         if (i < BP_POINTERS -1 ){
@@ -181,15 +239,34 @@ BPTree::BPLeaf* BPTree::BPLeaf::split()
 
     } // End for
 
+    if (!isLeaf)
+    {
+        newLeaf->diskPointers[newLeafOffset] = diskPointers[i];
+    } // End if
+
     return newLeaf;
 
 } // End shiftRight
+
+void BPTree::BPLeaf::shiftLeft()
+{
+    
+    for ( int i = 0; i < filling; i++ )
+    {
+        keys[i] = keys[i+1];
+        diskPointers[i] = diskPointers[i+1];
+    } // End for
+    
+    filling--;
+
+} // End shiftLeft
+
 
 unsigned int BPTree::BPLeaf::getSerialFormSize()
 {
     return  sizeof(disk_pointer) * BP_POINTERS + 
             meta->getPrimaryKeyByteSize() * (BP_POINTERS - 1) +
-            sizeof (unsigned short) + sizeof(disk_pointer);
+            sizeof (unsigned short) + sizeof(disk_pointer) + sizeof(isLeaf);
 
 } // End getSerialFormSize
 
@@ -201,12 +278,6 @@ char* BPTree::BPLeaf::serialize()
 
     // Require space in the heap
     serializedForm = (char*) malloc( getSerialFormSize() );
-
-    if (serializedForm == NULL) {
-        printf("NULL");
-        exit(0);
-    }
-
     offset = serializedForm;
 
     // Copy parent
@@ -216,6 +287,10 @@ char* BPTree::BPLeaf::serialize()
     // Copy filling counter
     memcpy(offset, &filling, sizeof(unsigned short));
     offset = (char*) (offset + sizeof(unsigned short));
+
+    // Copy leaf indicator
+    memcpy(offset, &isLeaf, sizeof(bool));
+    offset = (char*) (offset + sizeof(bool));
 
     // Copy pointers
     memcpy(offset, diskPointers, sizeof(disk_pointer) * BP_POINTERS);
@@ -261,7 +336,9 @@ void BPTree::insert( disk_pointer location, char* primary )
     BPLeaf*         auxiliar;
     BPLeaf*         splittedLeaf;
     BPLeaf*         newRoot;
+    BPLeaf*         updatingLeaf;
     DiskManager*    manager;
+    bool            hasRemainingInsertions;
 
     // Check if there is no root yet
     if ( root == NULL_DISK_POINTER )
@@ -278,66 +355,104 @@ void BPTree::insert( disk_pointer location, char* primary )
 
     else
     {
-        auxiliar = manager->readBPLeafAt( root, meta );
+        auxiliar = searchLeaf( primary ); 
     } // End else
 
-    // Insertion cases:
-    // 1. The key fits into current leaf
-    if ( auxiliar->filling < BP_POINTERS -1 )
-    {   
-        auxiliar->insert( location, primary );
-        manager->updateBPLeaf(auxiliar);
-    } // End if 
 
-    // 2. Split and insert
-    else
-    {
+    hasRemainingInsertions = true;
 
-        // Split prior to insertion
-        splittedLeaf = auxiliar->split();
-        manager->insertBPLeaf(splittedLeaf);
+    while (hasRemainingInsertions) {
 
-        newRoot = new BPTree::BPLeaf(meta);
-        newRoot->insert( auxiliar->diskLocation, splittedLeaf->keys[0] );
-        newRoot->diskPointers[1] = splittedLeaf->diskLocation;
-
-        // Connect leaves
-        auxiliar->diskPointers[BP_POINTERS - 1] = splittedLeaf->diskLocation;
-
-        // Now, must proceed to insertion upwards
-
-        // Check if parent is null. If so create a new root
-        if ( auxiliar->parent == NULL_DISK_POINTER )
-        {
-        
-            
-            // Create new leaf and point it to the both splitted leaves
-            newRoot = new BPTree::BPLeaf(meta);
-            newRoot->insert( auxiliar->diskLocation, splittedLeaf->keys[0] );
-            newRoot->diskPointers[1] = splittedLeaf->diskLocation;
-            
-            // Record new leaf onto the permanent storage
-            manager->insertBPLeaf(newRoot);
-            root = newRoot->diskLocation;
-            manager->storeBPTree(this);
-
-            // Set parents and record
-            auxiliar->parent = newRoot->diskLocation;
-            splittedLeaf->parent = newRoot->diskLocation;
+        // Insertion cases:
+        // 1. The key fits into current leaf
+        if ( auxiliar->filling < BP_POINTERS -1 )
+        {   
+            auxiliar->insert( location, primary );
             manager->updateBPLeaf(auxiliar);
-            manager->updateBPLeaf(splittedLeaf);
+            hasRemainingInsertions = false;
+        } // End if 
+
+        // 2. Split and insert
+        else
+        {
+            // Split prior to insertion
+            splittedLeaf = auxiliar->split();
+            manager->insertBPLeaf(splittedLeaf);
+
+            // Connect leaves if they're
+            if (auxiliar->isLeaf){
+                splittedLeaf->diskPointers[BP_POINTERS - 1] = auxiliar->diskPointers[BP_POINTERS - 1];
+                auxiliar->diskPointers[BP_POINTERS - 1] = splittedLeaf->diskLocation;
+            } // End if
+
+            // Check where to insert new key and carry out such process
+            if ( memcmp( primary, splittedLeaf->keys[0], meta->getPrimaryKeyByteSize() ) < 0 )
+                auxiliar->insert( location, primary );
+            else
+                splittedLeaf->insert( location, primary );
+
+            primary = splittedLeaf->keys[0];
+            location = splittedLeaf->diskLocation;
+
+            // Transfer to splitted node last entry to balance the tree
+            if (!splittedLeaf->isLeaf)
+                splittedLeaf->shiftLeft();
+
+            // Update parents upon splittage of a non-leaf
+            if (!splittedLeaf->isLeaf)
+            {
+                for (int i = 0; i < BP_POINTERS; i ++ )
+                {
+                    if (splittedLeaf->diskPointers[i] == NULL_DISK_POINTER)
+                        break;
+                    
+                    updatingLeaf = manager->readBPLeafAt( splittedLeaf->diskPointers[i], meta );
+                    updatingLeaf->parent = splittedLeaf->diskLocation;
+                    manager->updateBPLeaf(updatingLeaf);
+
+                } // End for
+
+            } // End if 
+
+            // Check if parent is null. If so create a new root
+            if ( auxiliar->parent == NULL_DISK_POINTER )
+            {
             
+                // Create new leaf and point it to the both splitted leaves
+                newRoot = new BPTree::BPLeaf(meta);
+                newRoot->insert( auxiliar->diskLocation, primary );
+                newRoot->diskPointers[1] = location;
+                newRoot->isLeaf = false;
+                
+                // Record new leaf onto the permanent storage
+                manager->insertBPLeaf(newRoot);
+                root = newRoot->diskLocation;
+                manager->storeBPTree(this);
 
+                // Set parents and record
+                auxiliar->parent = newRoot->diskLocation;
+                splittedLeaf->parent = newRoot->diskLocation;
+                manager->updateBPLeaf(auxiliar);
+                manager->updateBPLeaf(splittedLeaf);
 
-            printf("\nroot: %llu\n", root);
-            auxiliar->print();
-            splittedLeaf->print();
-            newRoot->print();
+                hasRemainingInsertions = false;
 
-        } // End if
+            } // End if
 
-        // Move upwards
+            else
+            {
 
-    } // End else
+                splittedLeaf->parent = auxiliar->parent;
+                manager->updateBPLeaf(auxiliar);
+                manager->updateBPLeaf(splittedLeaf);
+
+                // Move to parent
+                auxiliar = manager->readBPLeafAt( auxiliar->parent, meta );
+
+            } // End else
+
+        } // End else
+
+    } // End while
 
 } // End insert

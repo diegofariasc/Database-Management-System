@@ -25,18 +25,27 @@ class BPTree : Serializable
                 disk_pointer    diskLocation;
                 disk_pointer    parent;
                 char**          keys;
+                bool            isLeaf;
                 unsigned short  filling;
 
                 char* serialize();
                 unsigned int getSerialFormSize();
 
                 BPLeaf(Meta* meta);
-                BPLeaf(Meta* meta, unsigned short filling, disk_pointer* diskPointers, char** keys, disk_pointer parent);
+                BPLeaf( Meta* meta, 
+                        unsigned short filling, 
+                        disk_pointer* diskPointers, 
+                        char** keys, 
+                        disk_pointer parent, 
+                        bool isLeaf, 
+                        disk_pointer diskLocation );
                 
                 
                 void insert( disk_pointer pointer, char* key );
                 void shiftRight( unsigned short position );
+                void shiftLeft();
                 BPTree::BPLeaf* split();
+
                 void print();
 
         }; // End class
@@ -44,6 +53,7 @@ class BPTree : Serializable
         BPTree (Meta* meta, disk_pointer root);
 
         void insert( disk_pointer location, char* primary );
+        BPTree::BPLeaf* searchLeaf( char* key );
         
         char* serialize();
         unsigned int getSerialFormSize();

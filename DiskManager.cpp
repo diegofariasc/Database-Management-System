@@ -17,7 +17,7 @@ void DiskManager::storeMetadata( Meta* meta )
 
     // Open file
     fileName += ".meta";
-    pointer = fopen( fileName.c_str() ,"wb");
+    pointer = fopen( fileName.c_str() ,"r+");
 
     // Check if the system is able to access the file to store
     if ( !pointer )
@@ -74,7 +74,6 @@ void DiskManager::insertTuple( Tuple* tuple )
         serializedForm = tuple->serialize();
 
         // Move the pointer to the end and write 
-        fseek(pointer, 0L, SEEK_END);
         fwrite( serializedForm, tuple->getSerialFormSize(), 1, pointer );
 
         // Set in-disk location to the tuple for further usage
@@ -122,7 +121,7 @@ Tuple* DiskManager::readTupleAt( disk_pointer position, Meta* meta )
         readPayload = (char*) malloc( meta->getTupleByteSize() );
 
         // Move the pointer to the appropiate position and read
-        fseek( pointer, 0L, meta->getTupleByteSize() * position );
+        fseek( pointer, meta->getTupleByteSize() * position, SEEK_SET );
         fread( readPayload, meta->getTupleByteSize(), 1, pointer );
 
         // Build new tuple 
@@ -281,7 +280,7 @@ void DiskManager::storeBPTree(BPTree* tree)
 
     // Open file
     fileName += ".bpindexconf";
-    pointer = fopen( fileName.c_str() ,"wb");
+    pointer = fopen( fileName.c_str() ,"r+");
 
     // Check if the system is able to access the file to store
     if ( !pointer )
@@ -326,11 +325,11 @@ void DiskManager::insertBPLeaf(BPTree::BPLeaf* leaf)
 
     else 
     {
+
         // Acquire the serialized form with the built-in method
         serializedForm = leaf->serialize();
 
         // Move the pointer to the beginning and write 
-        fseek( pointer, 0L, SEEK_END);
         fwrite( serializedForm, leaf->getSerialFormSize(), 1, pointer );
         
         // Calculate insertion position and set it
@@ -356,7 +355,7 @@ void DiskManager::updateBPLeaf(BPTree::BPLeaf* leaf)
 
     // Open file
     fileName += ".bpindex";
-    pointer = fopen( fileName.c_str() ,"wb");
+    pointer = fopen( fileName.c_str() ,"r+");
 
     // Check if the system is able to access the file to store
     if ( !pointer )
@@ -370,7 +369,7 @@ void DiskManager::updateBPLeaf(BPTree::BPLeaf* leaf)
         serializedForm = leaf->serialize();
 
         // Move the pointer to the appropiate position and write
-        fseek( pointer, 0L, leaf->diskLocation * leaf->getSerialFormSize() );
+        fseek( pointer, leaf->diskLocation * leaf->getSerialFormSize(), SEEK_SET );
         fwrite( serializedForm, leaf->getSerialFormSize(), 1, pointer );
 
         // Release resources
@@ -394,6 +393,7 @@ BPTree::BPLeaf* DiskManager::readBPLeafAt(disk_pointer position, Meta* meta)
     char** keys;
     unsigned int leafByteSize;
     unsigned short filling;
+    bool isLeaf;
     disk_pointer* diskPointers;
     disk_pointer parent;
     std::string fileName( meta->getTableName() );
@@ -413,11 +413,11 @@ BPTree::BPLeaf* DiskManager::readBPLeafAt(disk_pointer position, Meta* meta)
         // Allocate space for storing read values
         leafByteSize =  sizeof(disk_pointer) * BP_POINTERS + 
                         meta->getPrimaryKeyByteSize() * (BP_POINTERS - 1) +
-                        sizeof (unsigned short) + sizeof(disk_pointer);
+                        sizeof (unsigned short) + sizeof(disk_pointer) + sizeof(isLeaf);
         readBytes = (char*) malloc( leafByteSize );
 
         // Move the pointer to the appropiate position and read
-        fseek( pointer, 0L, leafByteSize * position );
+        fseek( pointer, leafByteSize * position, SEEK_SET );
         fread( readBytes, leafByteSize, 1, pointer );
 
         // Extract values from raw bytes onto appropiate variables
@@ -430,6 +430,10 @@ BPTree::BPLeaf* DiskManager::readBPLeafAt(disk_pointer position, Meta* meta)
         // Extract filling counter
         memcpy( &filling, offset, sizeof( filling ) );
         offset = (char*) (offset + sizeof( filling ));
+
+        // Extract if leaf
+        memcpy( &isLeaf, offset, sizeof( isLeaf ) );
+        offset = (char*) (offset + sizeof( isLeaf ));
 
         // Extract pointers
         diskPointers = (disk_pointer*) malloc( sizeof(disk_pointer) * BP_POINTERS );
@@ -457,7 +461,7 @@ BPTree::BPLeaf* DiskManager::readBPLeafAt(disk_pointer position, Meta* meta)
         } // End for 
 
         // Build new leaf 
-        leaf = new BPTree::BPLeaf(meta, filling, diskPointers, keys, parent);
+        leaf = new BPTree::BPLeaf(meta, filling, diskPointers, keys, parent, isLeaf, position);
 
         // Release resources
         free(readBytes);
