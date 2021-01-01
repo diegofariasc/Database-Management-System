@@ -141,7 +141,13 @@ disk_pointer Tuple::getDiskLocation()
 // For information about this method refer to Serializable.h
 char* Tuple::serialize()
 {
-    return payload;
+    char* serializedForm;
+
+    serializedForm = (char*) malloc(meta->getTupleByteSize());
+    memcpy(serializedForm, payload, meta->getTupleByteSize());
+
+    return serializedForm;
+    
 } // End serialize
 
 // For information about this method refer to Serializable.h
