@@ -19,6 +19,12 @@ void DiskManager::storeMetadata( Meta* meta )
     fileName += ".meta";
     pointer = fopen( fileName.c_str() ,"r+");
 
+    // Attempt to create file if not loaded (maybe unexistent)
+    if ( !pointer )
+    {   
+        pointer = fopen( fileName.c_str() ,"ab+");
+    } // End if 
+
     // Check if the system is able to access the file to store
     if ( !pointer )
     {
@@ -282,9 +288,15 @@ void DiskManager::storeBPTree(BPTree* tree)
     fileName += ".bpindexconf";
     pointer = fopen( fileName.c_str() ,"r+");
 
+    // Attempt to create file if not loaded (maybe unexistent)
+    if ( !pointer )
+    {   
+        pointer = fopen( fileName.c_str() ,"ab+");
+    } // End if 
+
     // Check if the system is able to access the file to store
     if ( !pointer )
-    {
+    {   
         throw UnaccessibleIndexFile();
     } // End if 
 
