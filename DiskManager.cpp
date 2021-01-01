@@ -87,7 +87,6 @@ void DiskManager::insertTuple( Tuple* tuple )
         tuple->setDiskLocation( location );
 
         // Release resources
-        free(serializedForm);
         fclose(pointer); 
 
     } // End else
