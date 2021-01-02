@@ -537,3 +537,27 @@ BPTree* DiskManager::readBPTree(Meta* meta)
     return tree;
 
 } // End readBPLeafAt
+
+bool DiskManager::tableExists( char* table )
+{
+
+    // Variables
+    FILE* pointer;
+    bool exists = true;
+    std::string fileName( table );
+
+    // Open file
+    fileName += ".meta";
+    pointer = fopen( fileName.c_str() ,"rb");
+
+    // Check if the system is able to access the file to store
+    if ( !pointer )
+    {
+        exists = false;
+    } // End if 
+
+    // Release resources
+    fclose(pointer); 
+    return exists;
+
+} // End tableExists

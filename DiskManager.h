@@ -31,6 +31,8 @@ class DiskManager
         BPTree::BPLeaf* readBPLeafAt(disk_pointer position, Meta* meta);
         BPTree *        readBPTree(Meta* meta);
 
+        bool tableExists( char* table );
+
 }; // End class
 
 #endif
