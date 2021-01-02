@@ -8,7 +8,6 @@
 #include "Serializable.h"
 #include "Types.h"
 
-
 class Meta : Serializable
 {
 
@@ -30,7 +29,12 @@ class Meta : Serializable
         unsigned short* fieldNameSizes;             // Sizes of each field in bytes
         char**          fieldNames;                 // Names of the fields
 
+        unsigned short  notNullFieldsCount;         // Number of fields that cannot be null
+        unsigned short* notNullFields;              // Fields that cannot be null
 
+        disk_pointer*   minimums;                   // Minimum value locations of each field
+        disk_pointer*   maximums;                   // Maximum value locations of each field
+        char*           summations;                 // Summations of each field
 
     // ------------------------------------------------------------
     // METHODS
@@ -50,7 +54,12 @@ class Meta : Serializable
             unsigned short* primaryKeyFields, 
             unsigned int    primaryKeyByteSize,
             unsigned short* fieldNameSizes, 
-            char**          fieldNames );    
+            char**          fieldNames,
+            unsigned short  notNullFieldsCount,
+            unsigned short* notNullFields,
+            disk_pointer*   minimums,
+            disk_pointer*   maximums,
+            char*           summations );    
 
     public:
 
@@ -68,7 +77,12 @@ class Meta : Serializable
             unsigned short* primaryKeyFields, 
             unsigned int    primaryKeyByteSize,
             unsigned short* fieldNameSizes, 
-            char**          fieldNames );    
+            char**          fieldNames,
+            unsigned short  notNullFieldsCount,
+            unsigned short* notNullFields,
+            disk_pointer*   minimums,
+            disk_pointer*   maximums,
+            char*           summations );   
 
         Meta(   
             unsigned short  tableNameLength, 
@@ -79,7 +93,9 @@ class Meta : Serializable
             unsigned short  primaryKeyFieldCount, 
             unsigned short* primaryKeyFields, 
             unsigned short* fieldNameSizes, 
-            char**          fieldNames );
+            char**          fieldNames,
+            unsigned short  notNullFieldsCount,
+            unsigned short* notNullFields  );
 
         unsigned short  getTableNameLength();                       // Get table name length
         char*           getTableName();                             // Get the name of the table

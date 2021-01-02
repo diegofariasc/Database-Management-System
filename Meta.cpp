@@ -15,7 +15,13 @@ void Meta::init(
     unsigned short* primaryKeyFields, 
     unsigned int    primaryKeyByteSize,
     unsigned short* fieldNameSizes, 
-    char**          fieldNames ){
+    char**          fieldNames,
+    unsigned short  notNullFieldsCount,
+    unsigned short* notNullFields,
+    disk_pointer*   minimums,
+    disk_pointer*   maximums,
+    char*           summations)
+    {
 
     this->tableNameLength = tableNameLength;
     this->tableName = tableName;
@@ -29,6 +35,11 @@ void Meta::init(
     this->primaryKeyByteSize = primaryKeyByteSize;
     this->fieldNameSizes = fieldNameSizes;
     this->fieldNames = fieldNames;
+    this->notNullFieldsCount = notNullFieldsCount;
+    this->notNullFields = notNullFields;
+    this->minimums = minimums;
+    this->maximums = maximums;
+    this->summations = summations;
     
 
 } // End init
@@ -45,7 +56,12 @@ Meta::Meta(
     unsigned short* primaryKeyFields, 
     unsigned int    primaryKeyByteSize,
     unsigned short* fieldNameSizes, 
-    char**          fieldNames )
+    char**          fieldNames,
+    unsigned short  notNullFieldsCount,
+    unsigned short* notNullFields,
+    disk_pointer*   minimums,
+    disk_pointer*   maximums,
+    char*           summations )
 {
 
     init (  tableNameLength, 
@@ -59,7 +75,12 @@ Meta::Meta(
             primaryKeyFields, 
             primaryKeyByteSize,
             fieldNameSizes, 
-            fieldNames );
+            fieldNames,
+            notNullFieldsCount,
+            notNullFields,
+            minimums,
+            maximums,
+            summations );
             
 
 } // End constructor
@@ -72,13 +93,18 @@ Meta::Meta( unsigned short      tableNameLength,
             unsigned short      primaryKeyFieldCount,
             unsigned short*     primaryKeyFields,
             unsigned short*     fieldNameSizes, 
-            char**              fieldNames  )
+            char**              fieldNames,
+            unsigned short      notNullFieldsCount,
+            unsigned short*     notNullFields  )
 {
 
     // Initialize byte positions array and byte size
-    unsigned int* tupleFieldPositions;
-    unsigned int  tupleByteSize;
-    unsigned int  primaryKeyByteSize;
+    unsigned int*   tupleFieldPositions;
+    unsigned int    tupleByteSize;
+    unsigned int    primaryKeyByteSize;
+    disk_pointer*   minimums;
+    disk_pointer*   maximums;
+    char*           summations;
 
     tupleFieldPositions = (unsigned int*) malloc( sizeof( tupleFieldCount * sizeof(unsigned int) ) );
     tupleByteSize = 0;
@@ -103,6 +129,16 @@ Meta::Meta( unsigned short      tableNameLength,
 
     } // End for
 
+    // Initialize minimums, maximums and summations arrays
+    minimums = (disk_pointer*) malloc( sizeof(disk_pointer) * tupleFieldCount);
+    maximums = (disk_pointer*) malloc( sizeof(disk_pointer) * tupleFieldCount);
+    summations = (char*) calloc( tupleByteSize, sizeof(char) );
+
+    for ( int i = 0; i < tupleFieldCount; i++ )
+    {
+        minimums[i] = NULL_DISK_POINTER;
+        maximums[i] = NULL_DISK_POINTER;
+    } // End for
 
     init (  tableNameLength, 
             tableName, 
@@ -115,7 +151,12 @@ Meta::Meta( unsigned short      tableNameLength,
             primaryKeyFields, 
             primaryKeyByteSize,
             fieldNameSizes, 
-            fieldNames );
+            fieldNames,
+            notNullFieldsCount,
+            notNullFields,
+            minimums,
+            maximums,
+            summations );
 
 } // End constructor
 
@@ -155,7 +196,11 @@ unsigned int Meta::getSerialFormSize()
             sizeof( primaryKeyFieldCount ) + 
             sizeof( unsigned short ) * primaryKeyFieldCount +
             sizeof( primaryKeyByteSize ) +
-            sizeof( unsigned short ) * tupleFieldCount;
+            sizeof( unsigned short ) * tupleFieldCount +
+            sizeof( notNullFieldsCount ) +
+            sizeof(unsigned short) * notNullFieldsCount +
+            (2 * sizeof(disk_pointer) * tupleFieldCount) +
+            tupleByteSize;
             
     // Sum to size the tuple field name sizes
     for ( int i = 0; i < tupleFieldCount; i ++ )
@@ -234,6 +279,26 @@ char* Meta::serialize()
         memcpy( offset, fieldNames[i], fieldNameSizes[i] );
         offset = (char*) (offset + fieldNameSizes[i] );
     } // End for
+
+    // Copy number of not null fields
+    memcpy( offset, &notNullFieldsCount, sizeof( notNullFieldsCount ) );
+    offset = (char*) (offset + sizeof( notNullFieldsCount ) );
+
+    // Copy not null fields array
+    memcpy( offset, notNullFields, sizeof( unsigned short ) * notNullFieldsCount );
+    offset = (char*) (offset + sizeof( unsigned short ) * notNullFieldsCount );
+
+    // Copy minimum pointers array
+    memcpy( offset, minimums, sizeof( disk_pointer ) * tupleFieldCount );
+    offset = (char*) (offset + sizeof( disk_pointer ) * tupleFieldCount );
+
+    // Copy maximum pointers array
+    memcpy( offset, maximums, sizeof( disk_pointer ) * tupleFieldCount );
+    offset = (char*) (offset + sizeof( disk_pointer ) * tupleFieldCount );
+
+    // Copy array with summations
+    memcpy( offset, summations, tupleByteSize );
+    offset = (char*) (offset + tupleByteSize );
 
     return serialization;
 

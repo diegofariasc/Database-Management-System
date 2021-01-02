@@ -162,7 +162,7 @@ Meta* DiskManager::readMetadata( char* tableName )
     // For decoding
     unsigned short  tableNameLength;
     unsigned int    tupleByteSize;
-    unsigned short  tupleFieldCount = 4;
+    unsigned short  tupleFieldCount;
     unsigned short* tupleFieldTypes; 
     unsigned int*   tupleFieldSizes; 
     unsigned int*   tupleFieldPositions;
@@ -172,6 +172,11 @@ Meta* DiskManager::readMetadata( char* tableName )
     unsigned short* fieldNameSizes;
     char*           fieldName;
     char**          fieldNames;
+    unsigned short  notNullFieldsCount;
+    unsigned short* notNullFields;
+    disk_pointer*   minimums;
+    disk_pointer*   maximums;
+    char*           summations;
 
     // Open file
     fileName += ".meta";
@@ -259,11 +264,36 @@ Meta* DiskManager::readMetadata( char* tableName )
             offset = (char*) (offset + fieldNameSizes[i] );
         } // End for
 
+        // Extract number of not null fields
+        memcpy( &notNullFieldsCount, offset, sizeof( notNullFieldsCount ) );
+        offset = (char*) (offset + sizeof( notNullFieldsCount ) );
+
+        // Extract not null fields array
+        notNullFields = (unsigned short*) malloc( sizeof( unsigned short ) * notNullFieldsCount );
+        memcpy( notNullFields, offset, sizeof( unsigned short ) * notNullFieldsCount );
+        offset = (char*) (offset + sizeof( unsigned short ) * notNullFieldsCount );
+
+        // Extract minimum pointers array
+        minimums = (disk_pointer*) malloc( sizeof( disk_pointer ) * tupleFieldCount );
+        memcpy( offset, minimums, sizeof( disk_pointer ) * tupleFieldCount );
+        offset = (char*) (offset + sizeof( disk_pointer ) * tupleFieldCount );
+
+        // Extract maximum pointers array
+        maximums = (disk_pointer*) malloc( sizeof( disk_pointer ) * tupleFieldCount );
+        memcpy( offset, maximums, sizeof( disk_pointer ) * tupleFieldCount );
+        offset = (char*) (offset + sizeof( disk_pointer ) * tupleFieldCount );
+
+        // Extract array with summations
+        summations = (char*) malloc( tupleByteSize );
+        memcpy( summations, offset, tupleByteSize );
+        offset = (char*) (offset + tupleByteSize );
+
         // Build returning object
         meta = new Meta(tableNameLength, tableName, tupleByteSize, tupleFieldCount, 
                         tupleFieldTypes, tupleFieldSizes, tupleFieldPositions,
                         primaryKeyFieldCount, primaryKeyFields, primaryKeyByteSize,
-                        fieldNameSizes, fieldNames );
+                        fieldNameSizes, fieldNames, notNullFieldsCount, notNullFields,
+                        minimums, maximums, summations );
 
 
         // Release resources

@@ -23,7 +23,7 @@ void Interpreter::interpret( char* command )
     while (token != NULL) 
     { 
         tokens.push_back(token);
-        token = strtok(NULL, " \n\t"); 
+        token = strtok(NULL, " \n\t,"); 
 
     } // End while
 
@@ -32,6 +32,18 @@ void Interpreter::interpret( char* command )
     {
         exit(0);
     } // End if
+
+    // Delete table command
+    else if ( strcmp(tokens.at(0),"delete") == 0 && strcmp(tokens.at(1),"table") == 0 )
+    {
+        auto start = std::chrono::steady_clock::now();
+        Interpreter::executeDeleteTableInstruction( tokens );
+        auto end = std::chrono::steady_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end-start;
+        printf("Successfully deleted table '%s' in %lfs\n\n", tokens.at(2), elapsed_seconds.count() );
+
+    } // End else if
 
     // Create table command
     else if ( strcmp(tokens.at(0),"create") == 0 && strcmp(tokens.at(1),"table") == 0 && strcmp(tokens.at(3),"fields") == 0 )
@@ -68,7 +80,7 @@ void Interpreter::interpret( char* command )
 
 void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
 {        
-    unsigned short  i, j;
+    unsigned short  i, j, k;
     unsigned short  processsedFields;
     unsigned short  notNulls;
     unsigned short  tableNameLength;
@@ -80,6 +92,7 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
     char**          fieldNames;
     unsigned short  primaryKeyFieldCount; 
     unsigned short* primaryKeyFields;
+    unsigned short* notNullFields;
     Meta*           meta;
 
     tableName = tokens.at(2);
@@ -97,6 +110,7 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
 
     } // End while
 
+    notNullFields = (unsigned short*) malloc( sizeof(unsigned short) * notNulls );
     tupleFieldCount = (i - 4 - notNulls) / 2;
     tupleFieldTypes = (unsigned short*) malloc( sizeof(unsigned short) * tupleFieldCount );
     tupleFieldSizes = (unsigned int*) malloc( sizeof(unsigned int) * tupleFieldCount );
@@ -104,7 +118,7 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
     fieldNames = (char**) malloc( sizeof(char*) * tupleFieldCount );
 
     processsedFields = 0;
-    i = 4;
+    i = 4, k =0;
     while( strcmp(tokens.at(i),"primary") != 0 )
     {
 
@@ -113,8 +127,6 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
             tupleFieldTypes[processsedFields] = MINITINT;
             tupleFieldSizes[processsedFields] = VARSIZES[MINITINT];
         } // End if
-
-
 
         if ( strcmp(tokens.at(i),"shortint") == 0 )
         {
@@ -185,6 +197,13 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
         fieldNameSizes[processsedFields] = sizeof( tokens.at(i+1) );
         fieldNames[processsedFields] = tokens.at(i+1);
 
+        // Add not null condition if indicated
+        if ( (i + 2 < tokens.size()) && (strcmp( tokens.at(i+2), "notnull") == 0) )
+        {
+            notNullFields[k++] = processsedFields;
+            i++;
+        } // End if
+
         processsedFields++;
         i+= 2;
 
@@ -230,7 +249,9 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
         primaryKeyFieldCount,
         primaryKeyFields,
         fieldNameSizes,
-        fieldNames
+        fieldNames,
+        notNulls,
+        notNullFields
     );
 
     // Create table
@@ -280,3 +301,11 @@ void Interpreter::executeTupleInsertion( std::vector<char*> tokens )
     table->insertTuple( tuple );
 
 } // End executeTupleInsertion
+
+
+void Interpreter::executeDeleteTableInstruction( std::vector<char*> tokens )
+{
+
+    
+
+} // End executeDeleteTableInstruction

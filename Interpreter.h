@@ -19,6 +19,7 @@
         private:
             static void executeTableCreationInstruction( std::vector<char*> tokens );
             static void executeTupleInsertion( std::vector<char*> tokens );
+            static void executeDeleteTableInstruction( std::vector<char*> tokens );
 
     }; // End class
 

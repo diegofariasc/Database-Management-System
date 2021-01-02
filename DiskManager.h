@@ -4,6 +4,7 @@
 #include "Tuple.h"
 #include "BPTree.h"
 #include "Exceptions.h"
+#include "Types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
