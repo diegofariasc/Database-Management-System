@@ -33,4 +33,11 @@ class UnaccessibleIndexFile : public std::exception {
 
 }; // End class
 
+class UnexistentTable : public std::exception {   
+
+    public:
+        const char* what();
+
+}; // End class
+
 #endif
