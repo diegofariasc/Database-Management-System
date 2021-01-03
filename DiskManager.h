@@ -33,6 +33,7 @@ class DiskManager
         BPTree *        readBPTree(Meta* meta);
 
         bool tableExists( char* table );
+        void deleteTable( char* table );
 
 }; // End class
 

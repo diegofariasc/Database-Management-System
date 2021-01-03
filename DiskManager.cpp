@@ -591,3 +591,33 @@ bool DiskManager::tableExists( char* table )
     return exists;
 
 } // End tableExists
+
+
+void DiskManager::deleteTable( char* table )
+{
+
+    // Error if table does not exist
+    if ( ! tableExists(table) )
+        throw UnexistentTable( std::string(table) );
+
+    // Delete meta
+    std::string metaFilename( table );
+    metaFilename += ".meta";
+    remove( metaFilename.c_str() );
+
+    // Delete index
+    std::string bpindexFilename( table );
+    bpindexFilename += ".bpindex";
+    remove( bpindexFilename.c_str() );
+
+    // Delete index metadata
+    std::string bpindexconfFilename( table );
+    bpindexconfFilename += ".bpindexconf";
+    remove( bpindexconfFilename.c_str() );
+
+    // Delete registers
+    std::string dataFilename( table );
+    dataFilename += ".data";
+    remove( dataFilename.c_str() );
+
+} // End deleteTable
