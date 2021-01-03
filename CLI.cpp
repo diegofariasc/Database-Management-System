@@ -16,14 +16,33 @@ void CLI::start()
             Interpreter::interpret(command);
 
         } // End try
+        catch( BoundsCheckOverflow& e )
+        {
+            std::cout << e.what() << std::endl;
+        } // End catch
+        catch( UnaccessibleDatabaseMetadata& e )
+        {
+            std::cout << e.what() << std::endl;
+        } // End catch
+        catch( UnaccessibleDatabaseDataFile& e )
+        {
+            std::cout << e.what() << std::endl;
+        } // End catch
+        catch( UnaccessibleIndexFile& e )
+        {
+            std::cout << e.what() << std::endl;
+        } // End catch
         catch( UnexistentTable& e )
         {
-
             std::cout << e.what() << std::endl;
-
         } // End catch
-
+        catch( UnrecognizedDatatype& e )
+        {
+            std::cout << e.what() << std::endl;
+        } // End catch
+        
         fflush(stdin);
+
 
    } // End while 
 
