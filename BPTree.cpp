@@ -101,7 +101,7 @@ void BPTree::BPLeaf::insert( disk_pointer pointer, char* key )
         // Otherwise evaluate left-hand 
         // i.e. if the key to insert is shorter than the one at i-th position
         // if so, also the inserting position was found
-        if ( ( keys[i] == NULL ) || ( memcmp( key, keys[i], meta->getPrimaryKeyByteSize() ) < 0) )
+        if ( ( keys[i] == NULL ) || ( Comparator::compareKeys(key, keys[i], meta) < 0) )
             break;
         
     } // End for
@@ -113,7 +113,7 @@ void BPTree::BPLeaf::insert( disk_pointer pointer, char* key )
         // Right shift to open space for the new key
         shiftRight(i);
 
-        if ( memcmp( key, keys[i], meta->getPrimaryKeyByteSize() ) >= 0 || isLeaf )
+        if ( Comparator::compareKeys( key, keys[i], meta ) >= 0 || isLeaf )
             diskPointers[i] = NULL_DISK_POINTER;
 
 
@@ -150,7 +150,7 @@ BPTree::BPLeaf* BPTree::searchLeaf( char* key )
 
         for ( i = 0; i < auxiliar->filling; i++ )
         {
-            if ( memcmp( key, auxiliar->keys[i], meta->getPrimaryKeyByteSize() ) < 0 )
+            if ( Comparator::compareKeys( key, auxiliar->keys[i], meta ) < 0 )
                 break;
                  
         } // End for
@@ -387,7 +387,7 @@ void BPTree::insert( disk_pointer location, char* primary )
             } // End if
 
             // Check where to insert new key and carry out such process
-            if ( memcmp( primary, splittedLeaf->keys[0], meta->getPrimaryKeyByteSize() ) < 0 )
+            if ( Comparator::compareKeys(primary, splittedLeaf->keys[0], meta ) < 0 )
                 auxiliar->insert( location, primary );
             else
                 splittedLeaf->insert( location, primary );

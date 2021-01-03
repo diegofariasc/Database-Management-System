@@ -3,6 +3,7 @@
 
 #include "Tuple.h"
 #include "Constants.h"
+#include "Comparator.h"
 
 class DiskManager;
 
