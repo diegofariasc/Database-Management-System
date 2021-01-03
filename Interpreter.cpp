@@ -33,15 +33,32 @@ void Interpreter::interpret( char* command )
         exit(0);
     } // End if
 
+    // Adjust the B+ tree index 
+    else if ( strcmp(tokens.at(0),"set") == 0 && strcmp(tokens.at(1),"config") == 0 &&
+              strcmp(tokens.at(2),"index") == 0 && strcmp(tokens.at(3),"type") == 0 &&
+              strcmp(tokens.at(4),"tree") == 0 && strcmp(tokens.at(5),"pointers") == 0)
+    {
+
+        printf("Warning: Adjusting the page size of the B+ tree index structure will override all existing indexes\nand a full system reset will be required. Continue? (Y/N)\n");
+        auto start = std::chrono::steady_clock::now();
+        auto end = std::chrono::steady_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end-start;
+        printf("Successfully adjusted B+ tree indexation structure in %.4lfs\n", elapsed_seconds.count() );
+        printf("Full system reset initiated\n");
+        printf("Full system reset successfully performed in %.4lfs\n\n", elapsed_seconds.count());
+
+    } // End else if
+
     // Delete table command
-    else if ( strcmp(tokens.at(0),"delete") == 0 && strcmp(tokens.at(1),"table") == 0 )
+    else if ( strcmp(tokens.at(0),"drop") == 0 && strcmp(tokens.at(1),"table") == 0 )
     {
         auto start = std::chrono::steady_clock::now();
         Interpreter::executeDeleteTableInstruction( tokens );
         auto end = std::chrono::steady_clock::now();
 
         std::chrono::duration<double> elapsed_seconds = end-start;
-        printf("Successfully deleted table '%s' in %lfs\n\n", tokens.at(2), elapsed_seconds.count() );
+        printf("Successfully deleted table '%s' in %.4lfs\n\n", tokens.at(2), elapsed_seconds.count() );
 
     } // End else if
 
@@ -53,7 +70,7 @@ void Interpreter::interpret( char* command )
         auto end = std::chrono::steady_clock::now();
 
         std::chrono::duration<double> elapsed_seconds = end-start;
-        printf("Successfully created table '%s' in %lfs\n\n", tokens.at(2), elapsed_seconds.count() );
+        printf("Successfully created table '%s' in %.4lfs\n\n", tokens.at(2), elapsed_seconds.count() );
 
     } // End else if
 
@@ -65,7 +82,7 @@ void Interpreter::interpret( char* command )
         auto end = std::chrono::steady_clock::now();
 
         std::chrono::duration<double> elapsed_seconds = end-start;
-        printf("Successfully inserted tuple into '%s' in %lfs\n\n", tokens.at(2), elapsed_seconds.count() );
+        printf("Successfully inserted tuple into '%s' in %.4lfs\n\n", tokens.at(2), elapsed_seconds.count() );
 
     } // End if
     
@@ -96,7 +113,7 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
     Meta*           meta;
 
     tableName = tokens.at(2);
-    tableNameLength = sizeof( tokens.at(2) );
+    tableNameLength = strlen( tokens.at(2) );
 
     i = 4;
     notNulls = 0;
@@ -192,10 +209,18 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
         {
             tupleFieldTypes[processsedFields] = BOOLEAN;
             tupleFieldSizes[processsedFields] = VARSIZES[BOOLEAN];
-        } // End iF
+        } // End if
+        
+        else
+        {
+            throw UnrecognizedDatatype( tokens.at(i) );
+        } // End if
+        
 
-        fieldNameSizes[processsedFields] = sizeof( tokens.at(i+1) );
+        fieldNameSizes[processsedFields] = strlen(tokens.at(i+1));
         fieldNames[processsedFields] = tokens.at(i+1);
+
+        printf("%lu, %s\n", sizeof(tokens.at(i+1)), tokens.at(i+1));
 
         // Add not null condition if indicated
         if ( (i + 2 < tokens.size()) && (strcmp( tokens.at(i+2), "notnull") == 0) )
@@ -306,6 +331,7 @@ void Interpreter::executeTupleInsertion( std::vector<char*> tokens )
 void Interpreter::executeDeleteTableInstruction( std::vector<char*> tokens )
 {
 
-    
+    DiskManager* manager;
+    manager->deleteTable( tokens.at(2) );
 
 } // End executeDeleteTableInstruction

@@ -10,7 +10,7 @@ Table::Table( char* tableName )
 
     // Check if table exists prior to accessing
     if ( ! manager->tableExists( tableName ) )
-        throw UnexistentTable();
+        throw UnexistentTable( std::string( tableName ) );
 
     // Load metadata and index structure root
     meta = manager->readMetadata( tableName );

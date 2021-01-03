@@ -5,6 +5,7 @@
 #include "Table.h"
 #include "Exceptions.h"
 #include "Meta.h"
+#include "DiskManager.h"
 #include <stdio.h> 
 #include <string.h> 
 #include <string>

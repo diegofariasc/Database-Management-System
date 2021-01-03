@@ -49,5 +49,30 @@ Output: (string) indicating the causing error
 */
 const char* UnexistentTable::what() 
 {
-    return "Error REF-0 Unexistent table: The specified table does not exist in the current database\n";
+    std::string returnMessage;
+    returnMessage = "Error REF-0 Unexistent referenced table: The specified table '" + specified + "' does not exist in the current database\n";
+
+    return returnMessage.c_str();
+
 } // End InvalidType::what
+
+UnexistentTable::UnexistentTable( std::string specified )
+{
+    this->specified = specified;
+} // End constructor
+
+/* The exception occurs when the user specifies a data type that does not exist
+Output: (string) indicating the causing error
+*/
+const char* UnrecognizedDatatype::what() 
+{
+    std::string returnMessage;
+    returnMessage = "Error DT-0 Unrecognized datatype: The specified type '" + specified + "' does not exist\n";
+    return returnMessage.c_str();
+
+} // End InvalidType::what
+
+UnrecognizedDatatype::UnrecognizedDatatype( std::string specified )
+{
+    this->specified = specified;
+} // End constructor

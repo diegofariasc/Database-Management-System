@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <exception>
-
+#include <string>
 
 class BoundsCheckOverflow : public std::exception {   
 
@@ -35,7 +35,22 @@ class UnaccessibleIndexFile : public std::exception {
 
 class UnexistentTable : public std::exception {   
 
+    private:    
+        std::string specified;
+
     public:
+        UnexistentTable( std::string specified );
+        const char* what();
+
+}; // End class
+
+class UnrecognizedDatatype : public std::exception {   
+
+    private:
+        std::string specified;
+
+    public:
+        UnrecognizedDatatype( const std::string specified );
         const char* what();
 
 }; // End class
