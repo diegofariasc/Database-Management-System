@@ -34,4 +34,21 @@ typedef unsigned long long disk_pointer;
 // Definition of variable sizes
 const unsigned int VARSIZES[] = {1, 2, 4, 8, 1, 2, 4, 8, 4, 8, 1, 1};
 
+// ------------------------------------------------------------
+// VARIABLES USED IN METHODS FOR INTERPRETING TUPLES
+// ------------------------------------------------------------
+# define DECLARE_INTERPRETATION_VARS(NAME)      \
+char                    miniintVar_##NAME;      \
+short                   shortintVar_##NAME;     \
+int                     integerVar_##NAME;      \
+long long int           largeintVar_##NAME;     \
+unsigned char           uminiintVar_##NAME;     \
+unsigned short          ushortintVar_##NAME;    \
+unsigned int            uintegerVar_##NAME;     \
+unsigned long long int  ulargeintVar_##NAME;    \
+float                   floatVar_##NAME;        \
+double                  doubleVar_##NAME;       \
+char                    charVar_##NAME;         \
+bool                    booleanVar_##NAME;
+
 #endif
