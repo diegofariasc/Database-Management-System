@@ -15,18 +15,18 @@ short Comparator::compareKeys( char* firstKey, char* secondKey, Meta* meta )
         {
 
         // Compare a MINIINT
-        case  MINITINT: 
+        case  MINIINT: 
 
-            memcpy( &miniintVar_first, firstKey, VARSIZES[MINITINT] );
-            memcpy( &miniintVar_second, secondKey, VARSIZES[MINITINT] );
+            memcpy( &miniintVar_first, firstKey, VARSIZES[MINIINT] );
+            memcpy( &miniintVar_second, secondKey, VARSIZES[MINIINT] );
             
             if ( miniintVar_first < miniintVar_second )
                 return -1;
             else if ( miniintVar_first > miniintVar_second )
                 return 1;
 
-            firstKey = (char*) (firstKey + VARSIZES[MINITINT]);
-            secondKey = (char*) (secondKey + VARSIZES[MINITINT]);
+            firstKey = (char*) (firstKey + VARSIZES[MINIINT]);
+            secondKey = (char*) (secondKey + VARSIZES[MINIINT]);
             break;
 
         // Compare a SHORTINT
@@ -75,18 +75,18 @@ short Comparator::compareKeys( char* firstKey, char* secondKey, Meta* meta )
             break;
 
         // Compare an UMINIINT
-        case  UMINITINT: 
+        case  UMINIINT: 
 
-            memcpy( &uminiintVar_first, firstKey, VARSIZES[UMINITINT] );
-            memcpy( &uminiintVar_second, secondKey, VARSIZES[UMINITINT] );
+            memcpy( &uminiintVar_first, firstKey, VARSIZES[UMINIINT] );
+            memcpy( &uminiintVar_second, secondKey, VARSIZES[UMINIINT] );
             
             if ( uminiintVar_first < uminiintVar_second )
                 return -1;
             else if ( uminiintVar_first > uminiintVar_second )
                 return 1;
 
-            firstKey = (char*) (firstKey + VARSIZES[UMINITINT]);
-            secondKey = (char*) (secondKey + VARSIZES[UMINITINT]);
+            firstKey = (char*) (firstKey + VARSIZES[UMINIINT]);
+            secondKey = (char*) (secondKey + VARSIZES[UMINIINT]);
             break;
 
         // Compare an USHORTINT
