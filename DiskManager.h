@@ -20,8 +20,9 @@ class DiskManager
         void storeMetadata(Meta* meta );
 
         // Tuple and metadata reading
-        Tuple*  readTupleAt(disk_pointer position, Meta* meta);
-        Meta*   readMetadata(char* tableName);
+        Tuple*              readTupleAt(disk_pointer position, Meta* meta);
+        Meta*               readMetadata(char* tableName);
+        unsigned long long  getTupleCount( Meta* meta );
         
         // BPTree and BPLeaf storage
         void storeBPTree(BPTree* tree);

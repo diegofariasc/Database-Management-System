@@ -621,3 +621,36 @@ void DiskManager::deleteTable( char* table )
     remove( dataFilename.c_str() );
 
 } // End deleteTable
+
+
+unsigned long long DiskManager::getTupleCount( Meta* meta )
+{
+
+    // Variables
+    FILE*               pointer;
+    std::string         fileName( meta->getTableName() );
+    unsigned long long  tupleCount;
+
+    // Open file
+    fileName += ".data";
+    pointer = fopen( fileName.c_str() ,"rb");
+
+
+    // Check if the system is able to access the file to read
+    if ( !pointer )
+    {
+        throw UnaccessibleDatabaseDataFile();
+    } // End if 
+
+    else 
+    {
+        // Calculate the metadata length
+        fseek(pointer, 0L, SEEK_END);
+        tupleCount = ( ftell( pointer ) / meta->getTupleByteSize());
+        
+    } // End else
+
+    fclose( pointer );
+    return tupleCount;
+
+} // End getTupleCount
