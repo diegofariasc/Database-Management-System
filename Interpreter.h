@@ -6,6 +6,7 @@
 #include "Exceptions.h"
 #include "Meta.h"
 #include "DiskManager.h"
+#include "View.h"
 #include <stdio.h> 
 #include <string.h> 
 #include <string>
@@ -21,6 +22,7 @@
             static void executeTableCreationInstruction( std::vector<char*> tokens );
             static void executeTupleInsertion( std::vector<char*> tokens );
             static void executeDeleteTableInstruction( std::vector<char*> tokens );
+            static View* executeQuery( std::vector<char*> tokens );
 
     }; // End class
 

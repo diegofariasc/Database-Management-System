@@ -51,6 +51,29 @@ void Interpreter::interpret( char* command )
     } // End else if
 
     // Delete table command
+    else if ( strcmp(tokens.at(0),"select") == 0 )
+    {
+        View* result;
+
+        auto start = std::chrono::steady_clock::now();
+        result = Interpreter::executeQuery( tokens );
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end-start;
+
+        if (result->getTupleCount() == 0)
+        {
+            printf("Query result: Empty set");
+        }
+        else
+        {
+            result->print();
+            printf("Query result: %llu entries in %.4lfs\n\n", result->getTupleCount(), elapsed_seconds.count() );
+        } // End else
+
+    
+    } // End else if
+
+    // Delete table command
     else if ( strcmp(tokens.at(0),"drop") == 0 && strcmp(tokens.at(1),"table") == 0 )
     {
         auto start = std::chrono::steady_clock::now();
@@ -141,8 +164,8 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
 
         if ( strcmp(tokens.at(i),"miniint") == 0 )
         {
-            tupleFieldTypes[processsedFields] = MINITINT;
-            tupleFieldSizes[processsedFields] = VARSIZES[MINITINT];
+            tupleFieldTypes[processsedFields] = MINIINT;
+            tupleFieldSizes[processsedFields] = VARSIZES[MINIINT];
         } // End if
 
         if ( strcmp(tokens.at(i),"shortint") == 0 )
@@ -165,8 +188,8 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
 
         else if ( strcmp(tokens.at(i),"uminiint") == 0 )
         {
-            tupleFieldTypes[processsedFields] = UMINITINT;
-            tupleFieldSizes[processsedFields] = VARSIZES[UMINITINT];
+            tupleFieldTypes[processsedFields] = UMINIINT;
+            tupleFieldSizes[processsedFields] = VARSIZES[UMINIINT];
         } // End if
 
         else if ( strcmp(tokens.at(i),"ushortint") == 0 )
@@ -219,8 +242,6 @@ void Interpreter::executeTableCreationInstruction( std::vector<char*> tokens )
 
         fieldNameSizes[processsedFields] = strlen(tokens.at(i+1));
         fieldNames[processsedFields] = tokens.at(i+1);
-
-        printf("%lu, %s\n", sizeof(tokens.at(i+1)), tokens.at(i+1));
 
         // Add not null condition if indicated
         if ( (i + 2 < tokens.size()) && (strcmp( tokens.at(i+2), "notnull") == 0) )
@@ -290,6 +311,7 @@ void Interpreter::executeTupleInsertion( std::vector<char*> tokens )
     Tuple* tuple;
 
     // Variables to store tuple fields
+    unsigned short field, tokenIndex;
     int     intVal;
     float   floatVal;
     double  doubleVal;
@@ -298,28 +320,31 @@ void Interpreter::executeTupleInsertion( std::vector<char*> tokens )
     table = new Table( tokens.at(2) );
     tuple = new Tuple( table->getMeta() );
 
-    for ( unsigned short i = 4; i < table->getMeta()->getFieldCount(); i++ )
+    tokenIndex = 4;
+    for ( field = 0; field < table->getMeta()->getFieldCount(); field++ )
     {
 
-        switch ( table->getMeta()->getFieldType(i) )
+        switch ( table->getMeta()->getFieldType(field) )
         {
         case INTEGER:
 
-            intVal = std::atoi( tokens.at(i) );
-            tuple->setValueAt( i, (char*) &intVal, VARSIZES[INTEGER]);
+            intVal = std::atoi( tokens.at(tokenIndex) );
+            tuple->setValueAt( field, (char*) &intVal, VARSIZES[INTEGER]);
             break;
 
         case FLOAT:
-            floatVal = std::stof( tokens.at(i) );
-            tuple->setValueAt( i, (char*) &floatVal, VARSIZES[FLOAT]);
+            floatVal = std::stof( tokens.at(tokenIndex) );
+            tuple->setValueAt( field, (char*) &floatVal, VARSIZES[FLOAT]);
             break;
 
         case DOUBLE:
-            doubleVal = std::stod( tokens.at(i) );
-            tuple->setValueAt( i, (char*) &doubleVal, VARSIZES[DOUBLE]);
+            doubleVal = std::stod( tokens.at(tokenIndex) );
+            tuple->setValueAt( field, (char*) &doubleVal, VARSIZES[DOUBLE]);
             break;
 
         } // End switch
+
+        tokenIndex++;
 
     } // End for
 
@@ -335,3 +360,47 @@ void Interpreter::executeDeleteTableInstruction( std::vector<char*> tokens )
     manager->deleteTable( tokens.at(2) );
 
 } // End executeDeleteTableInstruction
+
+
+View* Interpreter::executeQuery( std::vector<char*> tokens )
+{
+    View* view;
+    DiskManager* manager;
+    Tuple* tuple;
+    Table* table;
+    unsigned int i;
+    unsigned short selectedFieldsCount;
+    unsigned short* selectedFields;
+
+    table = new Table( tokens.at(3) );
+
+    if ( strcmp(tokens.at(1), "*") == 0 )
+    {
+        selectedFieldsCount = table->getMeta()->getFieldCount();
+        selectedFields = NULL;
+    } // End if
+
+    else{
+        
+        // Count the number of selected fields in the query
+        while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
+        {
+            selectedFieldsCount++;
+        } // End while
+
+        // Allocate space
+        selectedFields = (unsigned short*) malloc( selectedFieldsCount * sizeof(unsigned short) );
+
+    } // End else
+
+    view = new View( table->getMeta(), selectedFields, selectedFieldsCount ); 
+
+    for ( disk_pointer i = 0; i < manager->getTupleCount( table->getMeta() ); i++ )
+    {
+        tuple = manager->readTupleAt( i, table->getMeta() );
+        view->addTuple(tuple);
+    } // End for
+
+    return view;
+
+} // End executeQuery
