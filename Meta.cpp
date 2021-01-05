@@ -182,6 +182,18 @@ char*           Meta::getFieldName( unsigned short position )       { return fie
 unsigned short  Meta::getPrimaryField( unsigned short position )    { return primaryKeyFields[ position ]; }
 
 // ------------------------------------------------------------
+// SETTERS 
+// ------------------------------------------------------------
+void Meta::setTableName( char* newName ) { tableName = newName; }   // Set the name of the table
+void Meta::setFieldName( unsigned short position,                   // Set a new name of a field
+                         unsigned short nameSize,
+                         char* newName) 
+{ 
+    fieldNameSizes[position] = nameSize;
+    fieldNames[position] = newName;
+} // End setFieldName
+
+// ------------------------------------------------------------
 // MANDATORY METHOD [VIRTUAL] 
 // ------------------------------------------------------------
 

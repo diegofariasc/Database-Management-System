@@ -369,7 +369,7 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
     Tuple* tuple;
     Table* table;
     unsigned int i;
-    unsigned short selectedFieldsCount;
+    unsigned short selectedFieldsCount, renameCount;
     unsigned short* selectedFields;
 
     i = 1;
@@ -395,27 +395,54 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
         
         i = 1;
         selectedFieldsCount = 0;
+
         // Count the number of selected fields in the query
         while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
         {
+            if ( i + 1 < tokens.size() && strcmp(tokens.at(i + 1), "as") == 0 )
+            {
+                for ( unsigned short j = 0; j < table->getMeta()->getFieldCount(); j++ )
+                {
+                    if ( strcmp(tokens.at(i), table->getMeta()->getFieldName(j) ) == 0 )
+                    {
+                        table->getMeta()->setFieldName( j, strlen(tokens.at(i+2)), tokens.at(i+2) );
+                        tokens.at(i) = tokens.at(i+2);
+                        break;
+                    } // End if
+
+                } // End for 
+
+                i += 2;             
+                  
+            } // End if
+
             selectedFieldsCount++;
             i++;
+
         } // End while
+
 
         // Allocate space
         selectedFields = (unsigned short*) malloc( selectedFieldsCount * sizeof(unsigned short) );
 
 
         i = 1;
+        renameCount = 0;
         // Count the number of selected fields in the query
         while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
         {
+
+            if ( strcmp(tokens.at(i), "as" ) == 0)
+            {
+                renameCount ++;
+                i++;
+                continue;
+            } // End if 
             
             for ( unsigned short j = 0; j < table->getMeta()->getFieldCount(); j++ )
             {
-
                 if ( strcmp(tokens.at(i), table->getMeta()->getFieldName(j) ) == 0  )
-                    selectedFields[i - 1] = j;
+                    selectedFields[i - 1 - (renameCount * 2)] = j;
 
             } // End for
 

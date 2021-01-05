@@ -110,6 +110,11 @@ class Meta : Serializable
         unsigned short  getPrimaryFieldCount();                     // Get the size of the primary key in fields
         unsigned int    getPrimaryKeyByteSize();                    // Get the size of the primary key in bytes
 
+        void            setTableName( char* newName );              // Set the name of the table
+        void            setFieldName( unsigned short position,      // Set a new name of a field
+                                      unsigned short nameSize, 
+                                      char* newName); 
+
         char*           serialize();                                // Comply with the virtual serialization method
         unsigned int    getSerialFormSize();                        // Comply with the virtual serial form size calculation method
 
