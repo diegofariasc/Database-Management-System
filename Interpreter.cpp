@@ -372,24 +372,57 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
     unsigned short selectedFieldsCount;
     unsigned short* selectedFields;
 
-    table = new Table( tokens.at(3) );
+    i = 1;
+    while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
+    {
+        i++;
+    } // End while
+    table = new Table( tokens.at(i + 1) );
 
     if ( strcmp(tokens.at(1), "*") == 0 )
     {
         selectedFieldsCount = table->getMeta()->getFieldCount();
-        selectedFields = NULL;
+        selectedFields = (unsigned short*) malloc( sizeof(unsigned short) * table->getMeta()->getFieldCount() );
+
+        for ( unsigned short i = 0; i < table->getMeta()->getFieldCount(); i++ )
+        {
+            selectedFields[i] = i;
+        } // End for
+
     } // End if
 
     else{
         
+        i = 1;
+        selectedFieldsCount = 0;
         // Count the number of selected fields in the query
         while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
         {
             selectedFieldsCount++;
+            i++;
         } // End while
 
         // Allocate space
         selectedFields = (unsigned short*) malloc( selectedFieldsCount * sizeof(unsigned short) );
+
+
+        i = 1;
+        // Count the number of selected fields in the query
+        while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
+        {
+            
+            for ( unsigned short j = 0; j < table->getMeta()->getFieldCount(); j++ )
+            {
+
+                if ( strcmp(tokens.at(i), table->getMeta()->getFieldName(j) ) == 0  )
+                    selectedFields[i - 1] = j;
+
+            } // End for
+
+            i++;
+
+        } // End while
+
 
     } // End else
 
