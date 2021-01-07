@@ -133,6 +133,15 @@ disk_pointer Tuple::getDiskLocation()
     return diskLocation;
 } // End getDiskLocation
 
+char* Tuple::getPayload()
+{
+    return payload;
+} // End getDiskLocation
+
+void Tuple::setPayload( char* newPayload )
+{
+    this->payload = newPayload;
+} // End getDiskLocation
 
 // ------------------------------------------------------------
 // MANDATORY METHOD [VIRTUAL] 

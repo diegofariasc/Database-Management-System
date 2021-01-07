@@ -39,6 +39,10 @@ class Tuple : Serializable
         char* serialize();        
         unsigned int getSerialFormSize();                             
 
+        // Get and set payload
+        char* getPayload();
+        void setPayload( char* newPayload );
+
 }; // End class
 
 
