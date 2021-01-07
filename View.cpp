@@ -24,22 +24,20 @@ View::View( Meta* meta, unsigned short* selectedFields, unsigned short selectedF
 
     if ( selectedFields == ALL_FIELDS )
     {
-        this->selectedFields = (unsigned short*) malloc( meta->getFieldCount() * sizeof(unsigned short) );
-        this->selectedFieldsCount = meta->getFieldCount();
+        selectedFields = (unsigned short*) malloc( meta->getFieldCount() * sizeof(unsigned short) );
+        selectedFieldsCount = meta->getFieldCount();
 
-        for ( unsigned short i; i < meta->getFieldCount(); i++ )
+        for ( unsigned short i = 0; i < meta->getFieldCount(); i++ )
+        {
             selectedFields[i] = i;
+        } // End for
 
     } // End if
-    else
-    {
-        this->selectedFields = selectedFields;
-        this->selectedFieldsCount = selectedFieldsCount;
-    } // End else
+
+    this->selectedFields = selectedFields;
+    this->selectedFieldsCount = selectedFieldsCount;
+
     
-
-
-
     // Iterate over each field and initialize min and max
     for (unsigned short i = 0; i < selectedFieldsCount; i++ )
     {
