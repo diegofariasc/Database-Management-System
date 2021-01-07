@@ -94,19 +94,20 @@ void View::addTuple( Tuple* tuple )
 } // End addTuple
 
 template <typename T> 
-unsigned int View::getLength( T value )
+unsigned int View::getLength( T receivedValue )
 {
     unsigned int length = 1;
+    unsigned int value = receivedValue;
 
     if ( value < 0 )
         length = trunc( log10( fabs(value) ) ) + 2;
     else if (value > 0)
         length = trunc( log10(value) ) + 1;
 
-    if ( typeid(value) == typeid(float) )
+    if ( typeid(receivedValue) == typeid(float) )
         length += 5;
 
-    else if ( typeid(value) == typeid(double) )
+    else if ( typeid(receivedValue) == typeid(double) )
         length += 8;
     
     return length;

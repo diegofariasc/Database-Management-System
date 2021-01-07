@@ -14,7 +14,6 @@ class View
         Meta*               meta;
         unsigned short      selectedFieldsCount;
         unsigned short*     selectedFields;
-        char*               namesAlias;
         std::vector<Tuple*> tuples;
 
         Tuple*              minimums;
