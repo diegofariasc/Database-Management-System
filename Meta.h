@@ -7,6 +7,7 @@
 
 #include "Serializable.h"
 #include "Types.h"
+#include "Utilities.h"
 
 class Meta : Serializable
 {
@@ -109,11 +110,24 @@ class Meta : Serializable
         unsigned short  getPrimaryField( unsigned short position ); // Get the n-th field of the primary key
         unsigned short  getPrimaryFieldCount();                     // Get the size of the primary key in fields
         unsigned int    getPrimaryKeyByteSize();                    // Get the size of the primary key in bytes
+        unsigned int*   getTupleFieldPositions();                   // Get the pointer to the field positions 
+        unsigned short* getPrimaryFields();                         // Get the pointer to the primary fields
+        unsigned short* getNotNullFields();                         // Get the pointer to the not null fields
+        unsigned short* getTupleFieldNameSizes();                   // Get the pointer to the field name sizes
+        char**          getFieldNames();                            // Get the pointer to the field names
+        unsigned int*   getFieldSizes();                            // Get the pointer to the field sizes array
+        unsigned short* getTupleFieldTypes();                       // Get the pointer to the tuple field types array
+        unsigned short  getNotNullFieldsCount();                    // Get the number of not null fields
+        int             getFieldPositionOfName( char* name );       // Get the position of a field based on its name
+        void            mergeWith( Meta* meta );                    // Allows to combine two tables metadata
 
         void            setTableName( char* newName );              // Set the name of the table
-        void            setFieldName( unsigned short position,      // Set a new name of a field
+        void            setFieldName( char* oldName,                // Set a new name of a field based on char array
+                                      char* newName);        
+        void            setFieldName( unsigned short position,      // Set a new name of a field based on position
                                       unsigned short nameSize, 
                                       char* newName); 
+       
 
         char*           serialize();                                // Comply with the virtual serialization method
         unsigned int    getSerialFormSize();                        // Comply with the virtual serial form size calculation method

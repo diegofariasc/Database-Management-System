@@ -172,6 +172,14 @@ unsigned int    Meta::getTupleByteSize()        { return tupleByteSize; }
 unsigned short  Meta::getFieldCount()           { return tupleFieldCount; }
 unsigned short  Meta::getPrimaryFieldCount()    { return primaryKeyFieldCount; }
 unsigned int    Meta::getPrimaryKeyByteSize()   { return primaryKeyByteSize; }
+unsigned int*   Meta::getTupleFieldPositions()  { return tupleFieldPositions; }
+unsigned short* Meta::getPrimaryFields()        { return primaryKeyFields; }
+unsigned short* Meta::getNotNullFields()        { return notNullFields; }
+unsigned short* Meta::getTupleFieldNameSizes()  { return fieldNameSizes; }
+char**          Meta::getFieldNames()           { return fieldNames; }
+unsigned int*   Meta::getFieldSizes()           { return tupleFieldSizes; }
+unsigned short* Meta::getTupleFieldTypes()      { return tupleFieldTypes; }
+unsigned short  Meta::getNotNullFieldsCount()   { return notNullFieldsCount; }
 
 // With parameters
 unsigned short  Meta::getFieldType( unsigned short position )       { return tupleFieldTypes[ position ]; }
@@ -180,11 +188,32 @@ unsigned short  Meta::getFieldStart( unsigned short position )      { return tup
 unsigned short  Meta::getFieldNameSize( unsigned short position )   { return fieldNameSizes[ position ]; }
 char*           Meta::getFieldName( unsigned short position )       { return fieldNames[ position ]; }
 unsigned short  Meta::getPrimaryField( unsigned short position )    { return primaryKeyFields[ position ]; }
+int             Meta::getFieldPositionOfName( char* name )
+{
+    for ( unsigned short i = 0; i < tupleFieldCount; i ++)
+    {
+        if ( strcmp( fieldNames[i], name ) == 0 )
+            return i;
+    } // End for
+    return -1;
+} // End getFieldPositionOfName
 
 // ------------------------------------------------------------
 // SETTERS 
 // ------------------------------------------------------------
 void Meta::setTableName( char* newName ) { tableName = newName; }   // Set the name of the table
+void Meta::setFieldName( char* oldName, char* newName)
+{
+    for (unsigned short i = 0; i < tupleFieldCount; i ++)
+    {
+        if ( strcmp( fieldNames[i], oldName ) == 0 )
+        {
+            fieldNames[i] = newName;
+            fieldNameSizes[i] = strlen(newName);
+            break;
+        } // End if
+    } // End for
+}
 void Meta::setFieldName( unsigned short position,                   // Set a new name of a field
                          unsigned short nameSize,
                          char* newName) 
@@ -316,4 +345,42 @@ char* Meta::serialize()
 
 } // End serialize
 
+
+void Meta::mergeWith( Meta* meta )
+{
+
+    // Positional pointers. Update values
+    Utilities::increaseByValue( meta->getTupleFieldPositions(), meta->getFieldCount(), tupleByteSize );
+    tupleFieldPositions = (unsigned int*) Utilities::concatBlocks( (char*) tupleFieldPositions, tupleFieldCount * sizeof(unsigned int), 
+                        (char*) meta->getTupleFieldPositions(), meta->getFieldCount() * sizeof(unsigned int) );
+
+    Utilities::increaseByValue( meta->getPrimaryFields(), meta->getPrimaryFieldCount(), tupleFieldCount );
+    primaryKeyFields = (unsigned short*) Utilities::concatBlocks( (char*) primaryKeyFields, primaryKeyFieldCount * sizeof(unsigned short), 
+                        (char*) meta->getPrimaryFields(), meta->getPrimaryFieldCount() * sizeof(unsigned short) );
+    
+    Utilities::increaseByValue( meta->getNotNullFields(), meta->getNotNullFieldsCount(), tupleFieldCount );
+    notNullFields = (unsigned short*) Utilities::concatBlocks( (char*) notNullFields, notNullFieldsCount * sizeof(unsigned short), 
+                    (char*) meta->getNotNullFields(),  meta->getNotNullFieldsCount() * sizeof(unsigned short) );
+
+    // Not positional. Hence increases not required
+    fieldNameSizes = (unsigned short*) Utilities::concatBlocks( (char*) fieldNameSizes, tupleFieldCount * sizeof(unsigned short), 
+                    (char*) meta->getTupleFieldNameSizes(), meta->getFieldCount() * sizeof(unsigned short) );
+ 
+    fieldNames = (char**) Utilities::concatBlocks( (char*) fieldNames, tupleFieldCount * sizeof(char*), 
+                    (char*) meta->getFieldNames(), meta->getFieldCount() * sizeof(char*) );
+
+    tupleFieldSizes = (unsigned int*) Utilities::concatBlocks( (char*) tupleFieldSizes, tupleFieldCount * sizeof(unsigned int), 
+                    (char*) meta->getFieldSizes(), meta->getFieldCount() * sizeof(unsigned int) );
+
+    tupleFieldTypes = (unsigned short*) Utilities::concatBlocks( (char*) tupleFieldTypes, tupleFieldCount * sizeof(unsigned short), 
+                    (char*) meta->getTupleFieldTypes(), meta->getFieldCount() * sizeof(unsigned short) );
+
+    // Concatenate all values 
+    tupleByteSize += meta->getTupleByteSize();
+    tupleFieldCount += meta->getFieldCount();
+    primaryKeyFieldCount += meta->getPrimaryFieldCount();
+    primaryKeyByteSize += meta->getPrimaryKeyByteSize();
+    notNullFieldsCount += meta->getNotNullFieldsCount();
+
+} // End mergeWith
 

@@ -364,100 +364,95 @@ void Interpreter::executeDeleteTableInstruction( std::vector<char*> tokens )
 
 View* Interpreter::executeQuery( std::vector<char*> tokens )
 {
-    View* view;
-    DiskManager* manager;
-    Tuple* tuple;
-    Table* table;
-    unsigned int i;
-    unsigned short selectedFieldsCount, renameCount;
-    unsigned short* selectedFields;
+    // Variables
+    View*               view;
+    DiskManager*        manager;
+    Meta*               meta;
+    Tuple*              tuple;
+    unsigned short*     selectedFields;
+    std::vector<char*>  tables;
+    std::vector<char*>  fields;
+    bool                passedFrom;
 
-    i = 1;
-    while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
+    
+    passedFrom = false;
+    meta = NULL;
+
+    // Analze query in reverse <---
+    for ( unsigned short i = tokens.size() - 1; i > 0; i--  )
     {
-        i++;
-    } // End while
-    table = new Table( tokens.at(i + 1) );
 
-    if ( strcmp(tokens.at(1), "*") == 0 )
-    {
-        selectedFieldsCount = table->getMeta()->getFieldCount();
-        selectedFields = (unsigned short*) malloc( sizeof(unsigned short) * table->getMeta()->getFieldCount() );
-
-        for ( unsigned short i = 0; i < table->getMeta()->getFieldCount(); i++ )
+        // Check if "FROM" clause was reached. If so notify it
+        if ( strcmp(tokens.at(i), "from") == 0 )
         {
-            selectedFields[i] = i;
-        } // End for
+            passedFrom = true;
+            continue;
+        } // End if 
 
-    } // End if
-
-    else{
-        
-        i = 1;
-        selectedFieldsCount = 0;
-
-        // Count the number of selected fields in the query
-        while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
+        // Check if i-th token is prior or posterior to FROM clause
+        // If prior -> table, if posterior -> field
+        if ( !passedFrom )
         {
-            if ( i + 1 < tokens.size() && strcmp(tokens.at(i + 1), "as") == 0 )
-            {
-                for ( unsigned short j = 0; j < table->getMeta()->getFieldCount(); j++ )
-                {
-                    if ( strcmp(tokens.at(i), table->getMeta()->getFieldName(j) ) == 0 )
-                    {
-                        table->getMeta()->setFieldName( j, strlen(tokens.at(i+2)), tokens.at(i+2) );
-                        tokens.at(i) = tokens.at(i+2);
-                        break;
-                    } // End if
-
-                } // End for 
-
-                i += 2;             
-                  
-            } // End if
-
-            selectedFieldsCount++;
-            i++;
-
-        } // End while
-
-
-        // Allocate space
-        selectedFields = (unsigned short*) malloc( selectedFieldsCount * sizeof(unsigned short) );
-
-
-        i = 1;
-        renameCount = 0;
-        // Count the number of selected fields in the query
-        while ( i < tokens.size() && strcmp(tokens.at(i), "from") != 0 )
-        {
-
-            if ( strcmp(tokens.at(i), "as" ) == 0)
-            {
-                renameCount ++;
-                i++;
-                continue;
-            } // End if 
+            tables.push_back( tokens.at(i) );
             
-            for ( unsigned short j = 0; j < table->getMeta()->getFieldCount(); j++ )
+            if ( meta == NULL )
+                meta = manager->readMetadata( tokens.at(i) );
+            else
+                meta->mergeWith ( manager->readMetadata( tokens.at(i) ) );
+
+        } // End if
+        else
+        {
+            // Executing renaming operation when required
+            if ( i - 1 > 0 && strcmp( tokens.at(i-1), "as") == 0 )
             {
-                if ( strcmp(tokens.at(i), table->getMeta()->getFieldName(j) ) == 0  )
-                    selectedFields[i - 1 - (renameCount * 2)] = j;
+                if ( i - 2 > 0 )
+                {
+                    // Execute renaming
+                    meta->setFieldName( tokens.at(i-2), tokens.at(i) );
 
-            } // End for
+                    // Add to list of projection
+                    fields.insert(fields.begin(), tokens.at(i));
+                    i -= 2;
+                } // End if
 
-            i++;
+            } // End if
+            else
+            {
+                fields.insert(fields.begin(), tokens.at(i));
+            } // End else
 
-        } // End while
 
+        } // End else
+            
+    } // End for
+
+    // Build the returning view
+
+    // Check if projection choosed all field
+    if ( strcmp(tokens.at(1), "*") == 0 )
+        view = new View( meta, ALL_FIELDS, 0 );
+
+    // If not all fields where chosen in the projection
+    else
+    {
+        // Build the array with positions
+        selectedFields = (unsigned short*) malloc( fields.size() * sizeof(unsigned short) );
+
+        // Initialize it
+        for ( unsigned short i = 0; i < fields.size(); i++ )
+            selectedFields[i] = meta->getFieldPositionOfName( fields.at(i) );
+
+        // Build view using above parameters
+        view = new View( meta, selectedFields, fields.size() );
 
     } // End else
+        
 
-    view = new View( table->getMeta(), selectedFields, selectedFieldsCount ); 
-
-    for ( disk_pointer i = 0; i < manager->getTupleCount( table->getMeta() ); i++ )
+    // Load and add tuples
+    for ( disk_pointer i = 0; i < manager->getTupleCount( meta ); i++ )
     {
-        tuple = manager->readTupleAt( i, table->getMeta() );
+        tuple = manager->readTupleAt( i, meta );
         view->addTuple(tuple);
     } // End for
 
