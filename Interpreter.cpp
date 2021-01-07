@@ -62,7 +62,8 @@ void Interpreter::interpret( char* command )
 
         if (result->getTupleCount() == 0)
         {
-            printf("Query result: Empty set");
+            result->print();
+            printf("Query result: Empty set in in %.4lfs\n\n",elapsed_seconds.count());
         }
         else
         {
@@ -70,7 +71,6 @@ void Interpreter::interpret( char* command )
             printf("Query result: %llu entries in %.4lfs\n\n", result->getTupleCount(), elapsed_seconds.count() );
         } // End else
 
-    
     } // End else if
 
     // Delete table command
@@ -365,18 +365,22 @@ void Interpreter::executeDeleteTableInstruction( std::vector<char*> tokens )
 View* Interpreter::executeQuery( std::vector<char*> tokens )
 {
     // Variables
-    View*               view;
-    DiskManager*        manager;
-    Meta*               meta;
-    Tuple*              tuple;
-    unsigned short*     selectedFields;
-    std::vector<char*>  tables;
-    std::vector<char*>  fields;
-    bool                passedFrom;
+    View*                           view;
+    DiskManager*                    manager;
+    Meta*                           resultMeta;
+    Meta*                           auxiliarMeta;
+    Tuple*                          tuple;
+    unsigned short*                 selectedFields;
+    std::vector<char*>              fields;
+    std::vector<unsigned long long> tupleCounts;
+    std::vector<Meta*>              involvedMetas;
+    unsigned long long              tupleCount;
+    unsigned long long              returningTuples;
+    bool                            passedFrom;
 
-    
     passedFrom = false;
-    meta = NULL;
+    resultMeta = NULL;
+    returningTuples = 0;
 
     // Analze query in reverse <---
     for ( unsigned short i = tokens.size() - 1; i > 0; i--  )
@@ -393,12 +397,28 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
         // If prior -> table, if posterior -> field
         if ( !passedFrom )
         {
-            tables.push_back( tokens.at(i) );
+            // Add metadatas
+            involvedMetas.insert( involvedMetas.begin(), manager->readMetadata( tokens.at(i) ) );
             
-            if ( meta == NULL )
-                meta = manager->readMetadata( tokens.at(i) );
+            // Add to tuple counts
+            tupleCount = manager->getTupleCount( involvedMetas.at(0) );
+            tupleCounts.insert( tupleCounts.begin(), tupleCount );
+
+            // Compute returning tuples
+            if ( returningTuples == 0 )
+                returningTuples = tupleCount;
             else
-                meta->mergeWith ( manager->readMetadata( tokens.at(i) ) );
+                returningTuples *= tupleCount;
+            
+            // Merge metas if necessary
+            if ( resultMeta == NULL )
+                resultMeta = manager->readMetadata( tokens.at(i) );
+            else
+            {
+                auxiliarMeta = manager->readMetadata( tokens.at(i) );
+                auxiliarMeta->mergeWith ( resultMeta );
+                resultMeta = auxiliarMeta;
+            } // End else
 
         } // End if
         else
@@ -409,7 +429,7 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
                 if ( i - 2 > 0 )
                 {
                     // Execute renaming
-                    meta->setFieldName( tokens.at(i-2), tokens.at(i) );
+                    resultMeta->setFieldName( tokens.at(i-2), tokens.at(i) );
 
                     // Add to list of projection
                     fields.insert(fields.begin(), tokens.at(i));
@@ -431,7 +451,7 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
 
     // Check if projection choosed all field
     if ( strcmp(tokens.at(1), "*") == 0 )
-        view = new View( meta, ALL_FIELDS, 0 );
+        view = new View( resultMeta, ALL_FIELDS, 0 );
 
     // If not all fields where chosen in the projection
     else
@@ -441,20 +461,70 @@ View* Interpreter::executeQuery( std::vector<char*> tokens )
 
         // Initialize it
         for ( unsigned short i = 0; i < fields.size(); i++ )
-            selectedFields[i] = meta->getFieldPositionOfName( fields.at(i) );
+            selectedFields[i] = resultMeta->getFieldPositionOfName( fields.at(i) );
 
         // Build view using above parameters
-        view = new View( meta, selectedFields, fields.size() );
+        view = new View( resultMeta, selectedFields, fields.size() );
 
     } // End else
-        
+        /*
+
 
     // Load and add tuples
-    for ( disk_pointer i = 0; i < manager->getTupleCount( meta ); i++ )
+    for ( disk_pointer i = 0; i < manager->getTupleCount( resultMeta ); i++ )
     {
-        tuple = manager->readTupleAt( i, meta );
+        tuple = manager->readTupleAt( i, resultMeta );
+        view->addTuple(tuple);
+    } // End for*/
+
+    for (unsigned long long i = 0; i < returningTuples; i ++ )
+    {
+        tuple = new Tuple( (char*) calloc(1,resultMeta->getTupleByteSize()), resultMeta, NULL_DISK_POINTER );
         view->addTuple(tuple);
     } // End for
+
+
+
+        unsigned long long filling;
+        unsigned long long tupleIndex;
+        unsigned long long accumulated ;
+        unsigned long long offset;
+        unsigned long long repetitions;
+        unsigned long long table;
+        char* readBytes;
+
+        offset = 0;
+        repetitions = returningTuples;
+
+        for ( table = 0; table < involvedMetas.size(); table++ )
+        {
+
+        accumulated = 0;
+        tupleIndex = 0;
+        repetitions /= tupleCounts.at(table);
+
+        while ( accumulated < returningTuples )
+        {
+
+            filling = 0;
+            readBytes = manager->readTupleAt( tupleIndex, involvedMetas.at(table) )->getPayload(); 
+            for ( ; filling < repetitions; filling ++ )
+            {
+                memcpy( (char*) (view->getTupleAt(accumulated)->getPayload() + offset), 
+                        readBytes, involvedMetas.at(table)->getTupleByteSize() );
+                accumulated++;
+            } // End for
+
+            tupleIndex++;
+            tupleIndex = tupleIndex >= tupleCounts.at(table) ? tupleIndex = 0 : tupleIndex ;
+
+        } // End while
+        
+        offset += involvedMetas.at(table)->getTupleByteSize();
+
+        }
+
+
 
     return view;
 
